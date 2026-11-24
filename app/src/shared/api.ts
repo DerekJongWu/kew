@@ -38,7 +38,7 @@ export interface SearchHit { record: RecordSummary; snippet: string }
 export interface ListQuery { filters?: Record<string, string[]>; sort?: { field: string; dir: 'asc' | 'desc' }; text?: string }
 export interface VaultInfo { root: string; name: string; isSample: boolean; schemaError: string | null }
 export interface SetupPlan { root: string; willCreate: string[]; existingNotes: number }
-// Schema types (FieldDef, TypeDef, Schema, SchemaChange) are re-exported from core/schema/types.ts — see Task 4.
+// Schema types (FieldDef, TypeDef, Schema, SchemaChange) are re-exported above from core/schema/types.ts.
 
 export interface KewApi {
   // app + vault lifecycle
