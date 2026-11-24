@@ -221,7 +221,7 @@ export function appendToSection(
       }
     }
     while (lines.length && bare(lines[lines.length - 1]) === '') lines.pop()
-    lines.push(cr, ...block)
+    lines.push(cr, ...block.slice(0, -1), '') // final '' keeps the file ending in a terminator
     return checkedAfter(text, lines.join('\n'))
   }
 }

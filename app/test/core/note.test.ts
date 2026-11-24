@@ -233,3 +233,14 @@ describe('safety re-parse', () => {
     expect(() => setKeys(load('block-lists.md'), { '{bad': 'x' })).toThrow(NoteParseError)
   })
 })
+
+describe('appendToSection at end of note', () => {
+  it('creates a new section at EOF in a CRLF note, byte for byte', () => {
+    const t = '---\r\ntype: a\r\n---\r\n\r\n# T\r\n'
+    expect(appendToSection(t, '## New', 'x')).toBe(t + '\r\n## New\r\n\r\n- x\r\n')
+  })
+  it('creates a new section at EOF in an LF note, byte for byte', () => {
+    const t = '---\ntype: a\n---\n\n# T\n'
+    expect(appendToSection(t, '## New', 'x')).toBe(t + '\n## New\n\n- x\n')
+  })
+})
