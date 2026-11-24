@@ -19,7 +19,7 @@ import type {
 
 const SYSTEM_KEYS = new Set(['id', 'type', 'name'])
 
-function record(ctx: Ctx, id: string): RecordSummary {
+export function record(ctx: Ctx, id: string): RecordSummary {
   const rec = ctx.index.byId(id)
   if (!rec) throw new Error(`No record with id ${id}`)
   return rec
@@ -29,7 +29,7 @@ const fieldDef = (ctx: Ctx, type: RecordType, k: string): FieldDef | undefined =
   ctx.schema().types[type].fields.find((f) => f.key === k)
 
 /** Schema keys are coerced (throws ValidationError); unknown keys pass through. Empty → null. */
-function coerceAll(
+export function coerceAll(
   ctx: Ctx,
   type: RecordType,
   changes: Record<string, FieldValue>
