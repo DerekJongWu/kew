@@ -12,7 +12,11 @@ export function unwrap<T>(res: Envelope<T>): T {
 }
 
 export function wrapBridge(bridge: KewBridge): KewApi {
-  const api = { onChanged: bridge.onChanged, onMenuUndo: bridge.onMenuUndo } as KewApi
+  const api = {
+    onChanged: bridge.onChanged,
+    onMenuUndo: bridge.onMenuUndo,
+    onFlush: bridge.onFlush
+  } as KewApi
   for (const m of KEW_METHODS) {
     ;(api as unknown as Record<string, unknown>)[m] = async (...args: unknown[]) =>
       unwrap(await (bridge[m] as (...a: unknown[]) => Promise<Envelope>)(...args))

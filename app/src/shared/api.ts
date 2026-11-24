@@ -73,4 +73,5 @@ export interface KewApi {
   // events
   onChanged(cb: (changedIds: string[]) => void): () => void
   onMenuUndo(cb: () => void): () => void                              // Edit > Undo / ⌘Z from the app menu
+  onFlush(cb: () => Promise<void>): () => void                        // window close / quit: save pending edits, then main proceeds
 }

@@ -4,6 +4,7 @@ import { router, useRoute } from './router'
 import { latestUndoable, plainError, status } from './lib/actions'
 import { isEditable } from './lib/editable'
 import { undoInEditor } from './lib/note-editor'
+import { flushes } from './lib/flush'
 import { Button } from './components/Button'
 import { DESTINATIONS, SETTINGS } from './lib/destinations'
 import { Sidebar } from './components/Sidebar'
@@ -37,7 +38,8 @@ function App(): React.JSX.Element {
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
-      if (!e.metaKey || e.altKey || e.ctrlKey) return
+      // A focused control that handled the key (an editor, a picker) wins.
+      if (e.defaultPrevented || !e.metaKey || e.altKey || e.ctrlKey) return
       const key = e.key.toLowerCase()
       const nav = [...DESTINATIONS, SETTINGS].find((d) => d.shortcut === key)
       if (key === 'k') {
@@ -62,6 +64,8 @@ function App(): React.JSX.Element {
       }),
     []
   )
+  // Window close / quit: main waits for pending edits to be saved.
+  useEffect(() => kew.onFlush(() => flushes.flushAll()), [])
   useEffect(() => {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

@@ -6,6 +6,7 @@ import { router } from '../router'
 import { plainError, status } from '../lib/actions'
 import { DESTINATIONS, TYPE_LABEL } from '../lib/destinations'
 import { splitProblems } from '../lib/properties'
+import { useFlushOnLeave } from '../lib/use-flush'
 import { unwrap } from '../lib/pipeline'
 import { nameProblem } from '../../../shared/names'
 import type { FieldDef, FieldValue, RecordDetail, RecordType } from '../../../shared/api'
@@ -30,17 +31,36 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
   const [draft, setDraft] = useState(record.name)
   const [error, setError] = useState<string | null>(null)
   const editing = useRef(false)
+  const sent = useRef<string | null>(null) // the name last sent, so leaving after a blur doesn't resend
   useEffect(() => {
+    sent.current = null
     if (!editing.current) setDraft(record.name)
   }, [record.name])
   const save = (): void => {
     const next = draft.trim()
     if (next === record.name) return setError(null)
+    if (next === sent.current) return
     const problem = nameProblem(next)
     if (problem) return setError(problem)
     setError(null)
-    status.run(() => kew.rename(record.id, next)).catch((e) => setError(plainError(e)))
+    sent.current = next
+    status
+      .run(() => kew.rename(record.id, next))
+      .then(
+        (res) => {
+          // A note added by hand gets its id on this write; follow it so the page doesn't lose it.
+          const nextId = res.changedIds.includes(record.id) ? record.id : res.changedIds[0]
+          const here = router.current()
+          if (nextId && nextId !== record.id && here.name === 'record' && here.id === record.id)
+            router.navigate({ name: 'record', id: nextId })
+        },
+        (e) => {
+          sent.current = null
+          setError(plainError(e))
+        }
+      )
   }
+  useFlushOnLeave(save)
   return (
     <div className="record-title-wrap">
       <input

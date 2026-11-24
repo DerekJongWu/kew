@@ -195,13 +195,18 @@ export async function rename(ctx: Ctx, id: string, newName: string): Promise<Act
     throw new ValidationError("Changing only capitalization isn't supported yet.")
   }
   const relink = (text: string): string => rewriteLinks(text, rec.name, name)
+  const assignedId = newId()
   const edits: FileEdit[] = [
     {
       path: rec.path,
       newPath: newPath === rec.path ? undefined : newPath,
       apply: (current) => {
         if (current === null) throw new Error(`${rec.path} no longer exists.`)
-        return relink(setKeys(current, { name }))
+        // Like setFields: a note added by hand gets its id on the first write, so the record keeps
+        // one identity after the move (changedIds[0] is that id).
+        const fm = parseNote(current).fm
+        const hasId = typeof fm.id === 'string' && fm.id !== ''
+        return relink(setKeys(current, hasId ? { name } : { name, id: assignedId }))
       }
     }
   ]

@@ -19,18 +19,18 @@ app.whenReady().then(async () => {
   try {
     await win.loadURL('data:text/html,<title>smoke</title>')
     result = await win.webContents.executeJavaScript(
-      'typeof window.kew + "|" + typeof window.kew.today + "|" + typeof window.kew.onMenuUndo'
+      'typeof window.kew + "|" + typeof window.kew.today + "|" + typeof window.kew.onMenuUndo + "|" + typeof window.kew.onFlush'
     )
   } catch (e) {
     result = 'error: ' + e.message
   }
   let envelope = 'skipped'
-  if (result === 'object|function|function') {
+  if (result === 'object|function|function|function') {
     // The bridge must hand back the envelope untouched (a thrown Error would lose its name).
     envelope = await win.webContents.executeJavaScript(
       'window.kew.today().then((r) => r.error && r.error.name, (e) => "threw:" + e.name)'
     )
   }
   console.log(result, envelope)
-  app.exit(result === 'object|function|function' && envelope === 'NoVaultError' ? 0 : 1)
+  app.exit(result === 'object|function|function|function' && envelope === 'NoVaultError' ? 0 : 1)
 })

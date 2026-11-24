@@ -1,8 +1,8 @@
 import type { KewApi } from './api'
 
-export type InvokeMethod = Exclude<keyof KewApi, 'onChanged' | 'onMenuUndo'>
+export type InvokeMethod = Exclude<keyof KewApi, 'onChanged' | 'onMenuUndo' | 'onFlush'>
 
-/** Every KewApi method that crosses IPC as `kew:<name>` (onChanged and onMenuUndo are events, not calls). */
+/** Every KewApi method that crosses IPC as `kew:<name>` (onChanged, onMenuUndo and onFlush are events, not calls). */
 export const KEW_METHODS = [
   'getState',
   'planSetup',
@@ -38,6 +38,10 @@ export const _exhaustive: [Missing] extends [never] ? true : never = true
 export const CHANGED_CHANNEL = 'kew:changed'
 /** Sent by Edit > Undo (⌘Z) in the app menu. */
 export const MENU_UNDO_CHANNEL = 'kew:menu-undo'
+/** Main → renderer before a window closes or the app quits: save pending edits. */
+export const FLUSH_CHANNEL = 'kew:flush'
+/** Renderer → main: pending edits are saved (or failed); main may close. */
+export const FLUSHED_CHANNEL = 'kew:flushed'
 export interface ErrorInfo {
   name: string
   message: string
@@ -54,4 +58,4 @@ export type KewBridge = {
   [M in InvokeMethod]: (
     ...args: Parameters<KewApi[M]>
   ) => Promise<Envelope<Awaited<ReturnType<KewApi[M]>>>>
-} & Pick<KewApi, 'onChanged' | 'onMenuUndo'>
+} & Pick<KewApi, 'onChanged' | 'onMenuUndo' | 'onFlush'>

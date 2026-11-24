@@ -1,7 +1,7 @@
 // The CodeMirror 6 editor behind MarkdownEditor: markdown styling, [[ completion, ⌘-click links,
 // autosave and reconciling with changes on disk. Kept outside React so the editor's own state
 // (timers, the body being saved) lives in one plain object.
-import { Annotation, EditorState } from '@codemirror/state'
+import { Annotation, EditorState, Transaction } from '@codemirror/state'
 import {
   Decoration,
   EditorView,
@@ -12,7 +12,7 @@ import {
   type DecorationSet,
   type ViewUpdate
 } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, undo } from '@codemirror/commands'
+import { history, undo } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import {
@@ -24,11 +24,11 @@ import {
 import { tags } from '@lezer/highlight'
 import { kew } from '../api'
 import { plainError, status } from './actions'
-import { normalizeBody, reconcile } from './body-sync'
+import { BodySync } from './body-sync'
+import { editorKeymap } from './editor-keys'
 import { linkAt, linkQuery, matchesName } from './wikilinks'
 import { TYPE_LABEL } from './destinations'
 
-export const SAVE_DELAY = 800
 /** Marks transactions that load text from disk, so they don't count as the user's edits. */
 const FromDisk = Annotation.define<boolean>()
 
@@ -124,42 +124,41 @@ export interface NoteEditorEvents {
   onOpenLink(name: string): void
 }
 
-/**
- * Owns one EditorView for one record. `baseline` is the body last known to be on disk, `pending`
- * the body being saved. Saving pauses while a conflict with an outside edit is unresolved.
- */
+/** Owns one EditorView for one record; BodySync decides when to save and what to do with disk changes. */
 export class NoteEditor {
   readonly view: EditorView
-  private baseline: string
-  private pending: string | null = null
-  private conflict: string | null = null
-  private timer: ReturnType<typeof setTimeout> | null = null
+  private sync: BodySync
 
   constructor(
     parent: HTMLElement,
-    private recordId: string,
+    recordId: string,
     body: string,
     label: string,
     private events: NoteEditorEvents
   ) {
-    this.baseline = normalizeBody(body)
+    this.sync = new BodySync(body, {
+      doc: () => this.view.state.doc.toString(),
+      replace: (text, undoable) =>
+        this.view.dispatch({
+          changes: { from: 0, to: this.view.state.doc.length, insert: text },
+          // Automatic reloads stay out of undo, so ⌘Z can't quietly revert an outside edit.
+          annotations: [
+            FromDisk.of(true),
+            ...(undoable ? [] : [Transaction.addToHistory.of(false)])
+          ]
+        }),
+      write: (text) => status.run(() => kew.setBody(recordId, text)).then(() => undefined),
+      onConflict: (c) => this.events.onConflict(c),
+      onError: (e) => this.events.onError(e === null ? null : plainError(e)),
+      delay: 800
+    })
     this.view = new EditorView({
       parent,
       state: EditorState.create({
-        doc: this.baseline,
+        doc: this.sync.initial,
         extensions: [
           history(),
-          keymap.of([
-            {
-              key: 'Escape',
-              run: (v) => {
-                v.contentDOM.blur()
-                return true
-              }
-            },
-            ...defaultKeymap,
-            ...historyKeymap
-          ]),
+          keymap.of(editorKeymap()),
           markdown(),
           syntaxHighlighting(highlight),
           wikiLinks,
@@ -168,10 +167,11 @@ export class NoteEditor {
           placeholder('Write anything. Type [[ to link a record.'),
           EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true' }),
           EditorView.updateListener.of((u) => {
-            if (u.docChanged && !u.transactions.some((t) => t.annotation(FromDisk))) this.schedule()
+            if (u.docChanged && !u.transactions.some((t) => t.annotation(FromDisk)))
+              this.sync.edited()
           }),
           EditorView.domEventHandlers({
-            blur: () => this.save(),
+            blur: () => void this.sync.save(),
             mousedown: (e, v) => {
               if (!e.metaKey) return false
               const pos = v.posAtCoords({ x: e.clientX, y: e.clientY })
@@ -193,95 +193,28 @@ export class NoteEditor {
     this.events = events
   }
 
-  private doc(): string {
-    return this.view.state.doc.toString()
-  }
-
-  private schedule(): void {
-    if (this.timer) clearTimeout(this.timer)
-    this.timer = setTimeout(() => this.save(), SAVE_DELAY)
-  }
-
-  /** Write the editor's text if it differs from disk. */
-  save(): void {
-    if (this.timer) clearTimeout(this.timer)
-    this.timer = null
-    const text = this.doc()
-    if (this.conflict !== null || this.pending !== null || text === this.baseline) return
-    this.pending = text
-    this.events.onError(null)
-    status
-      .run(() => kew.setBody(this.recordId, text))
-      .then(
-        () => {
-          this.baseline = text
-          this.pending = null
-          if (this.doc() !== text) this.schedule()
-        },
-        (e) => {
-          this.pending = null
-          this.events.onError(plainError(e))
-        }
-      )
-  }
-
-  private replace(text: string): void {
-    this.view.dispatch({
-      changes: { from: 0, to: this.view.state.doc.length, insert: text },
-      annotations: FromDisk.of(true)
-    })
-  }
-
-  private setConflict(c: string | null): void {
-    this.conflict = c
-    this.events.onConflict(c)
-  }
-
-  /** A body read from the vault: our own save, an outside change, or a conflict with local edits. */
   incoming(body: string): void {
-    const incoming = normalizeBody(body)
-    if (this.conflict !== null) {
-      if (incoming !== this.baseline) this.setConflict(incoming)
-      return
-    }
-    const r = reconcile({
-      baseline: this.baseline,
-      pending: this.pending,
-      doc: this.doc(),
-      incoming
-    })
-    if (r === 'saved') this.baseline = incoming
-    else if (r === 'reload') {
-      this.baseline = incoming
-      this.replace(incoming)
-    } else if (r === 'conflict') this.setConflict(incoming)
+    this.sync.incoming(body)
   }
-
-  /** Conflict bar: show the version on disk. */
   takeDisk(): void {
-    if (this.conflict === null) return
-    const disk = this.conflict
-    this.baseline = disk
-    this.setConflict(null)
-    this.replace(disk)
+    this.sync.takeDisk()
   }
-
-  /** Conflict bar: save what's in the editor over it (history keeps the outside version). */
   keepMine(): void {
-    if (this.conflict === null) return
-    this.baseline = this.conflict
-    this.setConflict(null)
-    this.save()
+    void this.sync.keepMine()
   }
-
+  /** Save now (window closing, leaving the page); never drops local text. */
+  flush(): Promise<void> {
+    return this.sync.flush()
+  }
   focus(): void {
     this.view.focus()
   }
 
-  /** Leaving the page: save what was typed, then tear down. */
-  destroy(): void {
-    this.save()
-    if (this.timer) clearTimeout(this.timer)
+  /** Leaving the page: save what was typed (even with a conflict open), then tear down. */
+  destroy(): Promise<void> {
+    const saved = this.sync.flush()
+    this.sync.dispose()
     this.view.destroy()
+    return saved
   }
 }

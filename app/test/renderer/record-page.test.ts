@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   httpsHref,
   keyFromLabel,
@@ -12,7 +12,7 @@ import {
   labelFromKey,
   optionValue
 } from '../../src/renderer/src/lib/properties'
-import { normalizeBody, reconcile } from '../../src/renderer/src/lib/body-sync'
+import { BodySync, normalizeBody, reconcile } from '../../src/renderer/src/lib/body-sync'
 import { linkAt, linkQuery, matchesName } from '../../src/renderer/src/lib/wikilinks'
 import type { FieldDef } from '../../src/shared/api'
 
@@ -156,5 +156,95 @@ describe('add-property helpers', () => {
     expect(guessType(['a', 'b'])).toBe('multi-select')
     expect(guessType('https://x.example')).toBe('url')
     expect(guessType('hello')).toBe('text')
+  })
+})
+
+describe('BodySync', () => {
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- test helper, shape is inferred
+  const setup = (initial = 'a') => {
+    let doc = initial
+    const writes: string[] = []
+    let release: (() => void) | null = null
+    const replaced: [string, boolean][] = []
+    const conflicts: (string | null)[] = []
+    const sync = new BodySync(initial, {
+      doc: () => doc,
+      replace: (t, undoable) => {
+        doc = t
+        replaced.push([t, undoable])
+      },
+      write: (t) =>
+        new Promise<void>((r) => {
+          writes.push(t)
+          release = r
+        }),
+      onConflict: (c) => conflicts.push(c),
+      onError: () => undefined,
+      delay: 800
+    })
+    return {
+      sync,
+      writes,
+      replaced,
+      conflicts,
+      type: (t: string) => {
+        doc = t
+        sync.edited()
+      },
+      land: async () => {
+        release?.()
+        release = null
+        await new Promise((r) => setTimeout(r, 0))
+      }
+    }
+  }
+
+  it('saves 800 ms after typing stops', async () => {
+    vi.useFakeTimers()
+    const s = setup()
+    s.type('ab')
+    vi.advanceTimersByTime(799)
+    expect(s.writes).toEqual([])
+    vi.advanceTimersByTime(1)
+    expect(s.writes).toEqual(['ab'])
+    vi.useRealTimers()
+  })
+
+  it('reloads an outside change as a non-undoable replace; Reload from the bar is undoable', () => {
+    const s = setup()
+    s.sync.incoming('z')
+    expect(s.replaced).toEqual([['z', false]])
+    s.type('z local')
+    s.sync.incoming('y')
+    expect(s.conflicts).toEqual(['y'])
+    s.sync.takeDisk()
+    expect(s.replaced.at(-1)).toEqual(['y', true])
+  })
+
+  it('pauses autosave during a conflict, but flush keeps the local text instead of dropping it', async () => {
+    const s = setup()
+    s.type('a local')
+    s.sync.incoming('outside')
+    expect(s.conflicts).toEqual(['outside'])
+    await s.sync.save()
+    expect(s.writes).toEqual([])
+    const p = s.sync.flush()
+    expect(s.writes).toEqual(['a local'])
+    expect(s.conflicts.at(-1)).toBeNull()
+    await s.land()
+    await p
+  })
+
+  it('flush during an in-flight save waits for it, then saves the newer text', async () => {
+    const s = setup()
+    s.type('ab')
+    void s.sync.save()
+    s.type('abc')
+    const p = s.sync.flush()
+    expect(s.writes).toEqual(['ab'])
+    await s.land()
+    expect(s.writes).toEqual(['ab', 'abc'])
+    await s.land()
+    await p
   })
 })

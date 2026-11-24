@@ -1,4 +1,13 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, nativeTheme, Menu } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  nativeTheme,
+  Menu,
+  type IpcMainEvent
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,7 +15,8 @@ import { closeCurrentVault, registerIpc, reopenLast } from './ipc'
 import { createChangeHandler } from './changes'
 import { menuTemplate } from './menu'
 import { watchVault, type VaultWatcher } from './watcher'
-import { CHANGED_CHANNEL } from '../shared/methods'
+import { CHANGED_CHANNEL, FLUSH_CHANNEL, FLUSHED_CHANNEL } from '../shared/methods'
+import { createCloseGuard, requestFlush } from './flush'
 import type { Vault } from '../core/vault'
 
 let vault: Vault | null = null
@@ -42,6 +52,34 @@ function startWatcher(v: Vault): void {
   watcher = watchVault(v.root, (paths) => void onChange(v, paths))
 }
 
+/** Ask one window's renderer to save pending edits; resolves on its ack or after a timeout. */
+function flushWindow(w: BrowserWindow): Promise<void> {
+  if (w.isDestroyed()) return Promise.resolve()
+  return requestFlush({
+    send: () => w.webContents.send(FLUSH_CHANNEL),
+    onAck: (cb) => {
+      const listener = (e: IpcMainEvent): void => {
+        if (e.sender === w.webContents) cb()
+      }
+      ipcMain.on(FLUSHED_CHANNEL, listener)
+      return () => ipcMain.removeListener(FLUSHED_CHANNEL, listener)
+    }
+  })
+}
+
+// ⌘Q: hold the quit until every window has saved; then windows close without asking again
+// (holding a window's close during a quit would cancel the quit).
+let quitFlushed = false
+const guardQuit = createCloseGuard(async () => {
+  await Promise.all(BrowserWindow.getAllWindows().map(flushWindow))
+})
+app.on('before-quit', (e) =>
+  guardQuit(e, () => {
+    quitFlushed = true
+    app.quit()
+  })
+)
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -63,6 +101,12 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: true
     }
+  })
+
+  // Closing the window: save pending edits first.
+  const guardClose = createCloseGuard(() => flushWindow(mainWindow))
+  mainWindow.on('close', (e) => {
+    if (!quitFlushed) guardClose(e, () => mainWindow.close())
   })
 
   mainWindow.on('ready-to-show', () => {

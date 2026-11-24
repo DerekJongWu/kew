@@ -2,7 +2,7 @@
 // Screenshots of the BUILT app for design review. Run via `npm run screenshot`.
 // Starts the real main entry with a fresh temp userData folder, creates a sample vault in a
 // temp folder through window.kew, then captures onboarding first, then Today (light, dark) and the ⌘K command bar.
-import { app, BrowserWindow, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
@@ -452,6 +452,87 @@ async function records(win) {
   key(win, 'Escape')
 }
 
+/** What main does before a window closes: ask the renderer to save, wait for its ack. */
+async function flushRenderer(win) {
+  const acked = new Promise((r) => ipcMain.once('kew:flushed', () => r(true)))
+  win.webContents.send('kew:flush')
+  return Promise.race([acked, sleep(2000).then(() => false)])
+}
+
+async function fixes(win) {
+  const pe = () => readAny('People', 'Mara Quintero')
+  // 1a. Flush (window close / quit) inside the 800 ms autosave window saves the editor text.
+  await openRecord(win, 'Mara Quintero')
+  await waitFor(win, '.cm-content')
+  key(win, 'E', ['meta'])
+  await sleep(200)
+  win.webContents.insertText('Flushed words. ')
+  const t0 = Date.now()
+  const acked = await flushRenderer(win)
+  log('flush: acked', acked, 'in', Date.now() - t0, 'ms | file has text:', pe().includes('Flushed words.'))
+
+  // 1b. Leaving with the conflict bar up keeps the local text (as "Keep mine").
+  win.webContents.insertText('Conflict local. ')
+  writeAny('People', 'Mara Quintero', pe() + '\nThird outside edit.\n')
+  for (let i = 0; i < 8; i++) {
+    await sleep(300)
+    win.webContents.insertText('.')
+  }
+  log('leave with conflict: bar shown:', await js(win, `!!document.querySelector('.editor-conflict')`))
+  // ⌘[
+  win.webContents.sendInputEvent({ type: 'keyDown', keyCode: '[', modifiers: ['meta'] })
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: '[', modifiers: ['meta'] })
+  await sleep(1500)
+  log('leave with conflict: navigated away:', !(await js(win, `!!document.querySelector('.outreach-card')`)), '| local text saved:', pe().includes('Conflict local.'))
+  const h = await historyTop(win, 3)
+  log('leave with conflict: history:', h.map((x) => `${x.kind}:${x.message}`).join(' | '))
+
+  // 3. ⌘[ in the editor navigates back without outdenting the line first.
+  await openRecord(win, 'Mara Quintero')
+  await waitFor(win, '.cm-content')
+  key(win, 'E', ['meta'])
+  await sleep(200)
+  win.webContents.insertText('    Indented line.\n')
+  win.webContents.sendInputEvent({ type: 'keyDown', keyCode: '[', modifiers: ['meta'] })
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: '[', modifiers: ['meta'] })
+  await sleep(1500)
+  log('cmd+[ in editor: navigated back:', !(await js(win, `!!document.querySelector('.outreach-card')`)), '| line kept its indent:', pe().includes('    Indented line.'))
+
+  // 4. A field draft is saved when ⌘[ leaves the page while the input has focus.
+  await openRecord(win, 'Lanternfish Data')
+  const co = () => readAny('Companies', 'Lanternfish Data')
+  await js(win, `[...document.querySelectorAll('.prop')].find((r) => r.querySelector('.prop-label')?.textContent === 'Raise').querySelector('input').focus()`)
+  win.webContents.insertText('$9M')
+  await sleep(200)
+  win.webContents.sendInputEvent({ type: 'keyDown', keyCode: '[', modifiers: ['meta'] })
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: '[', modifiers: ['meta'] })
+  await sleep(1200)
+  log('field draft on cmd+[: navigated:', !(await js(win, `!!document.querySelector('.record .props')`)) || (await js(win, `document.querySelector('.record-title')?.value`)) !== 'Lanternfish Data', '| raise saved:', /^raise: .*\$9M/m.test(co()))
+
+  // 2. Renaming a hand-made note with no id keeps the page on it.
+  writeAny('Companies', 'Handmade Co', '---\ntype: company\nname: Handmade Co\n---\nWritten in another app.\n')
+  await sleep(1500)
+  await openRecord(win, 'Handmade Co')
+  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, 'Handmade Two'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await sleep(200)
+  key(win, 'Return')
+  await sleep(1500)
+  log('rename no-id note: file has id:', /^id: \w{26}$/m.test(readAny('Companies', 'Handmade Two')), '| page title:', await js(win, `document.querySelector('.record-title')?.value`), '| deleted message:', await js(win, `!!document.querySelector('.empty-title') && document.querySelector('.empty-title').textContent.includes('deleted')`))
+}
+
+/** Last: close the window inside the autosave window; the close waits for the save. */
+async function closeFlush(win) {
+  await openRecord(win, 'Mara Quintero')
+  await waitFor(win, '.cm-content')
+  key(win, 'E', ['meta'])
+  await sleep(200)
+  win.webContents.insertText('Typed just before closing. ')
+  const closed = new Promise((r) => win.once('closed', r))
+  win.close()
+  await Promise.race([closed, sleep(4000)])
+  log('window close: closed', win.isDestroyed(), '| text saved:', readAny('People', 'Mara Quintero').includes('Typed just before closing.'))
+}
+
 async function main() {
   await app.whenReady()
   mkdirSync(outDir, { recursive: true })
@@ -498,6 +579,7 @@ async function main() {
   await pipeline(win)
   await lists(win)
   await records(win)
+  await fixes(win)
 
   key(win, 'K', ['meta'])
   await waitFor(win, '.cmdk-input')
@@ -505,6 +587,9 @@ async function main() {
   await waitFor(win, '.cmdk [cmdk-group-heading]')
   await sleep(300) // search results arrive asynchronously
   await shot(win, 'command-bar-light.png')
+  key(win, 'Escape')
+  await sleep(300)
+  await closeFlush(win)
 }
 
 main().then(

@@ -3,6 +3,7 @@
 // otherwise ask before anything is replaced. The editor itself lives in lib/note-editor.ts.
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { NoteEditor } from '../lib/note-editor'
+import { flushes } from '../lib/flush'
 import { Button } from './Button'
 
 export interface EditorHandle {
@@ -37,8 +38,10 @@ export function MarkdownEditor({
       onOpenLink
     })
     editor.current = ed
+    const off = flushes.register(() => ed.flush())
     return () => {
-      ed.destroy()
+      off()
+      void ed.destroy()
       editor.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

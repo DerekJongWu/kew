@@ -242,6 +242,21 @@ describe('setBody', () => {
 })
 
 describe('rename', () => {
+  it('assigns an id to a note that lacked one, and reports it first in changedIds', async () => {
+    const rel = 'Companies/Orphan Co.md'
+    await fsp.writeFile(join(vault, rel), '---\ntype: company\nname: Orphan Co\n---\nBody\n')
+    idx.indexFile(rel, read(rel), schema)
+    const pathId = idx.byPath(rel)!.id
+    expect(pathId.startsWith('path:')).toBe(true)
+    const r = await rename(ctx, pathId, 'Orphan Two')
+    const text = read('Companies/Orphan Two.md')
+    const id = /^id: (\w{26})$/m.exec(text)?.[1]
+    expect(id).toBeTruthy()
+    expect(text).toBe(`---\ntype: company\nname: Orphan Two\nid: ${id}\n---\nBody\n`)
+    expect(r.changedIds[0]).toBe(id)
+    expect(idx.byId(id!)?.path).toBe('Companies/Orphan Two.md')
+  })
+
   it('renames the file, rewrites links in other notes, and undo restores all of it', async () => {
     const sam = 'People/Sam Okafor.md',
       res = 'Research/Agent Security Landscape.md'

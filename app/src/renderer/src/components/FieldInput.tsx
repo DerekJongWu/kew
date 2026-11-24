@@ -5,6 +5,7 @@ import type { FieldDef, FieldValue } from '../../../shared/api'
 import { plainError } from '../lib/actions'
 import { displayValue, httpsHref, listValue } from '../lib/properties'
 import { RelationPicker } from './RelationPicker'
+import { useFlushOnLeave } from '../lib/use-flush'
 
 export type Commit = (key: string, value: FieldValue) => Promise<void>
 
@@ -144,13 +145,18 @@ function TextInput({
   const saved = displayValue(value)
   const [draft, setDraft] = useState(saved)
   const editing = useRef(false)
+  const sent = useRef<string | null>(null) // last value sent, so leaving after a blur doesn't resend
   useEffect(() => {
+    sent.current = null
     if (!editing.current) setDraft(saved)
   }, [saved])
   const save = (): void => {
     const next = draft.trim()
-    if (next !== saved) commit(next === '' ? null : next)
+    if (next === saved || next === sent.current) return
+    sent.current = next
+    commit(next === '' ? null : next)
   }
+  useFlushOnLeave(save)
   const href = field.type === 'url' ? httpsHref(saved) : null
   return (
     <div className="prop-inline">
@@ -248,6 +254,8 @@ function MultiSelect({
     if (t && !list.includes(t)) set([...list, t])
     setText('')
   }
+  useFlushOnLeave(add)
+
   return (
     <div className="prop-multi">
       {list.map((v) => (

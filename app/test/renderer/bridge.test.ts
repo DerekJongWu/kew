@@ -33,7 +33,7 @@ describe('wrapBridge', () => {
             : { value: [m, a] }
       ])
     ) as unknown as KewBridge
-    const api = wrapBridge({ ...bridge, onChanged, onMenuUndo })
+    const api = wrapBridge({ ...bridge, onChanged, onMenuUndo, onFlush: onMenuUndo })
     expect(await api.planSetup('/x')).toEqual(['planSetup', ['/x']])
     await expect(api.today()).rejects.toMatchObject({ name: 'NoVaultError' })
     expect(api.onChanged).toBe(onChanged)

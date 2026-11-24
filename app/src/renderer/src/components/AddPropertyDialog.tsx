@@ -45,7 +45,8 @@ export function AddPropertyDialog({
   const [busy, setBusy] = useState(false)
 
   const key = prefill?.key ?? keyFromLabel(label)
-  const keyProblem = prefill ? null : propertyKeyProblem(key, existing)
+  // A prefilled key comes from a note as written, so it gets the same check as a typed label.
+  const keyProblem = propertyKeyProblem(key, existing)
   const hasOptions = fieldType === 'select' || fieldType === 'multi-select'
 
   useEffect(() => {
@@ -67,7 +68,12 @@ export function AddPropertyDialog({
 
   const submit = async (): Promise<void> => {
     if (!label.trim()) return setError('Give the property a label.')
-    if (keyProblem) return setError(keyProblem)
+    if (keyProblem)
+      return setError(
+        prefill
+          ? `${prefill.key} can't be a field key as written. ${keyProblem} Rename it in the note first.`
+          : keyProblem
+      )
     const field: FieldDef = { key, label: label.trim(), type: fieldType, tier: 'custom' }
     if (hasOptions && options.length) field.options = options
     if (fieldType === 'relation') {

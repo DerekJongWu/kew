@@ -3,6 +3,8 @@ import {
   KEW_METHODS,
   CHANGED_CHANNEL,
   MENU_UNDO_CHANNEL,
+  FLUSH_CHANNEL,
+  FLUSHED_CHANNEL,
   type Envelope,
   type KewBridge
 } from '../shared/methods'
@@ -22,6 +24,16 @@ const kew = {
     const listener = (): void => cb()
     ipcRenderer.on(MENU_UNDO_CHANNEL, listener)
     return () => ipcRenderer.removeListener(MENU_UNDO_CHANNEL, listener)
+  },
+  onFlush(cb: () => Promise<void>): () => void {
+    // Always ack, even if saving failed, so the window can still close.
+    const listener = (): void => {
+      cb()
+        .catch(() => undefined)
+        .finally(() => ipcRenderer.send(FLUSHED_CHANNEL))
+    }
+    ipcRenderer.on(FLUSH_CHANNEL, listener)
+    return () => ipcRenderer.removeListener(FLUSH_CHANNEL, listener)
   }
 } as KewBridge
 for (const m of KEW_METHODS) {
