@@ -21,6 +21,19 @@ export function aliasesOf(fields: Record<string, FieldValue>): string[] {
 
 const baseName = (rel: string): string => rel.split('/').pop()!.replace(/\.md$/i, '')
 
+/** First non-empty line under "## What it is", at most 140 characters. */
+export function whatItIs(body: string): string {
+  const lines = body.split(/\r?\n/)
+  const at = lines.findIndex((l) => /^##\s+What it is\s*$/i.test(l))
+  if (at < 0) return ''
+  for (const l of lines.slice(at + 1)) {
+    if (/^#{1,6}\s/.test(l)) return ''
+    const t = l.trim()
+    if (t) return t.length > 140 ? `${t.slice(0, 139).trimEnd()}…` : t
+  }
+  return ''
+}
+
 export function indexFile(db: Db, rel: string, text: string, schema: Schema): void {
   const folderType = RECORD_TYPES.find((t) => rel.startsWith(schema.types[t].folder + '/'))
   // Same rule as rebuild: only .md files inside a type folder are records.
@@ -48,6 +61,10 @@ export function indexFile(db: Db, rel: string, text: string, schema: Schema): vo
   problems.push(...validateFields(schema, type, fields))
   if (type === 'person') problems.push(...logProblems(text))
 
+  const stored: Record<string, FieldValue> = { ...fields }
+  for (const k of Object.keys(stored)) if (k.startsWith('_')) delete stored[k] // reserved for derived fields
+  if (type === 'company') stored._summary = whatItIs(parsed.body)
+
   const fmName = typeof fields.name === 'string' ? fields.name.trim() : ''
   const name = fmName || baseName(rel)
   const fmId = typeof fields.id === 'string' ? fields.id.trim() : ''
@@ -60,7 +77,7 @@ export function indexFile(db: Db, rel: string, text: string, schema: Schema): vo
       id = `path:${rel}`
     }
     db.run('INSERT INTO records (id, path, type, name, fields, problems) VALUES (?, ?, ?, ?, ?, ?)',
-      id, rel, type, name, JSON.stringify(fields), JSON.stringify(problems))
+      id, rel, type, name, JSON.stringify(stored), JSON.stringify(problems))
     const row = db.get<{ rowid: number }>('SELECT rowid FROM records WHERE id = ?', id)!
     const aliases = aliasesOf(fields)
     for (const n of new Set([name, ...aliases].map(key))) if (n) db.run('INSERT INTO names (key, id) VALUES (?, ?)', n, id)

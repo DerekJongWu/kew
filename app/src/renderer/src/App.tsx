@@ -9,6 +9,7 @@ import { Sidebar } from './components/Sidebar'
 import { CommandBar } from './components/CommandBar'
 import { Icon } from './components/Icon'
 import { Today } from './screens/Today'
+import { Pipeline } from './screens/Pipeline'
 import { Placeholder } from './screens/Placeholder'
 import { Onboarding } from './screens/Onboarding'
 
@@ -109,6 +110,8 @@ function App(): React.JSX.Element {
         <div className="main-scroll">
           {route.name === 'today' ? (
             <Today />
+          ) : route.name === 'pipeline' ? (
+            <Pipeline />
           ) : (
             <Placeholder key={JSON.stringify(route)} route={route} />
           )}

@@ -109,6 +109,9 @@ export async function createRecord(
   force = false
 ): Promise<ActionResult | { duplicates: DuplicateHit[] }> {
   const wanted = cleanName(name)
+  for (const k of Object.keys(fields)) {
+    if (k.startsWith('_')) throw new ValidationError(`${k} is calculated by Kew and can't be set.`)
+  }
   const given = coerceAll(
     ctx,
     type,
@@ -161,6 +164,7 @@ export async function setFields(
   for (const k of Object.keys(changes)) {
     if (k === 'name') throw new ValidationError('Use rename to change a name.')
     if (SYSTEM_KEYS.has(k)) throw new ValidationError(`The ${k} field can't be changed.`)
+    if (k.startsWith('_')) throw new ValidationError(`${k} is calculated by Kew and can't be changed.`)
   }
   const coerced = coerceAll(ctx, rec.type, changes)
   const keyChanges: Record<string, FieldValue | undefined> = {}

@@ -94,6 +94,28 @@ describe('list', () => {
   })
 })
 
+describe('derived company fields', () => {
+  it('adds _last_touch from the latest outreach event among the company\'s people, on every query', () => {
+    const quill = idx.resolveName('Quill')!
+    expect(quill.fields._last_touch).toBe('2026-11-10|out|linkedin')
+    expect(idx.byId(quill.id)!.fields._last_touch).toBe('2026-11-10|out|linkedin')
+    expect(idx.list('company').find((c) => c.name === 'Quill Security')!.fields._last_touch).toBe('2026-11-10|out|linkedin')
+    expect(idx.list('company').find((c) => c.name === 'Harbor Analytics')!.fields._last_touch).toBeNull()
+    expect(idx.list('person')[0].fields._last_touch).toBeUndefined()
+  })
+
+  it('adds _summary: the first non-empty line under "What it is", capped at 140 chars', () => {
+    const quill = idx.resolveName('Quill')!
+    expect(quill.fields._summary).toBe('Runtime guardrails for autonomous agents. Founders previously ran platform security at a payments firm.')
+    const long = '---\ntype: company\nname: Long One\n---\n\n## What it is\n\n' + 'word '.repeat(60) + '\n'
+    idx.indexFile('Companies/Long One.md', long, schema)
+    const s = String(idx.resolveName('Long One')!.fields._summary)
+    expect(s.length).toBeLessThanOrEqual(140)
+    expect(s.endsWith('…')).toBe(true)
+    idx.removeFile('Companies/Long One.md')
+  })
+})
+
 describe('search and duplicates', () => {
   it('finds a word that only appears in a body', () => {
     const hits = idx.search('zebrafish', 10)

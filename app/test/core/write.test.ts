@@ -141,6 +141,11 @@ describe('createRecord', () => {
 })
 
 describe('setFields', () => {
+  it('refuses derived fields (keys starting with _)', async () => {
+    await expect(setFields(ctx, QUILL_ID, { _last_touch: 'x' })).rejects.toThrow(ValidationError)
+    await expect(createRecord(ctx, 'company', 'Underscore Co', { _summary: 'x' })).rejects.toThrow(ValidationError)
+  })
+
   it('changes only the target lines', async () => {
     const before = read(QUILL)
     const r = await setFields(ctx, QUILL_ID, { stage: 'series-a', pipeline_status: 'active' })

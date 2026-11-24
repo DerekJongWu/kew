@@ -15,10 +15,46 @@ import type { Schema } from '../../shared/api'
 
 interface RecRow extends Row { id: string; path: string; type: RecordType; name: string; fields: string; problems: string }
 
-const toSummary = (r: RecRow): RecordSummary => ({
+const parsed = (r: RecRow): RecordSummary => ({
   id: r.id, type: r.type, name: r.name, path: r.path,
   fields: JSON.parse(r.fields) as Record<string, FieldValue>, problems: JSON.parse(r.problems) as string[]
 })
+
+/** "YYYY-MM-DD|dir|channel" of the latest outreach event per company id (companies with none are absent). */
+function lastTouches(db: Db): Map<string, string> {
+  const latest = new Map<string, { date: string; rowid: number; value: string }>()
+  const events = db.all(
+    `SELECT e.rowid AS rowid, e.person_id, e.date, e.dir, e.channel, r.fields FROM events e
+     JOIN records r ON r.id = e.person_id ORDER BY e.rowid`)
+  const companyOf = new Map<string, string | null>()
+  for (const e of events) {
+    const pid = String(e.person_id)
+    if (!companyOf.has(pid)) {
+      const name = links((JSON.parse(String(e.fields)) as Record<string, FieldValue>).company)[0]
+      companyOf.set(pid, name ? (db.get<{ id: string }>(
+        `SELECT r.id FROM names n JOIN records r ON r.id = n.id WHERE n.key = ? AND r.type = 'company' ORDER BY r.path LIMIT 1`, name)?.id ?? null) : null)
+    }
+    const cid = companyOf.get(pid)
+    if (!cid) continue
+    const date = String(e.date)
+    const cur = latest.get(cid)
+    if (!cur || date >= cur.date) latest.set(cid, { date, rowid: Number(e.rowid), value: `${date}|${String(e.dir)}|${String(e.channel)}` })
+  }
+  return new Map([...latest].map(([k, v]) => [k, v.value]))
+}
+
+/** Builds summaries; companies get the derived read-only fields `_last_touch` (computed lazily, once per call). */
+function summarizer(db: Db): (r: RecRow) => RecordSummary {
+  let touches: Map<string, string> | null = null
+  return (r) => {
+    const s = parsed(r)
+    if (s.type === 'company') {
+      touches ??= lastTouches(db)
+      s.fields._last_touch = touches.get(s.id) ?? null
+    }
+    return s
+  }
+}
 
 const str = (v: FieldValue | undefined): string => (typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : '')
 const links = (v: FieldValue | undefined): string[] =>
@@ -32,28 +68,28 @@ export function categoryOf(schema: Schema, status: FieldValue | undefined): Stag
 
 export function byId(db: Db, id: string): RecordSummary | null {
   const r = db.get<RecRow>('SELECT * FROM records WHERE id = ?', id)
-  return r ? toSummary(r) : null
+  return r ? summarizer(db)(r) : null
 }
 
 export function byPath(db: Db, rel: string): RecordSummary | null {
   const r = db.get<RecRow>('SELECT * FROM records WHERE path = ?', rel)
-  return r ? toSummary(r) : null
+  return r ? summarizer(db)(r) : null
 }
 
 export function resolveName(db: Db, name: string, prefer?: RecordType): RecordSummary | null {
   const r = db.get<RecRow>(
     `SELECT r.* FROM names n JOIN records r ON r.id = n.id WHERE n.key = ?
      ORDER BY (r.type = ?) DESC, r.path LIMIT 1`, key(unlink(name)), prefer ?? '')
-  return r ? toSummary(r) : null
+  return r ? summarizer(db)(r) : null
 }
 
 const ofType = (db: Db, type: RecordType): RecordSummary[] =>
-  db.all<RecRow>('SELECT * FROM records WHERE type = ? ORDER BY path', type).map(toSummary)
+  db.all<RecRow>('SELECT * FROM records WHERE type = ? ORDER BY path', type).map(summarizer(db))
 
 export function backlinks(db: Db, id: string): RecordSummary[] {
   return db.all<RecRow>(
     `SELECT DISTINCT r.* FROM records r JOIN links l ON l.src = r.id
-     WHERE r.id != ?1 AND l.target IN (SELECT key FROM names WHERE id = ?1) ORDER BY r.path`, id).map(toSummary)
+     WHERE r.id != ?1 AND l.target IN (SELECT key FROM names WHERE id = ?1) ORDER BY r.path`, id).map(summarizer(db))
 }
 
 function sortValue(r: RecordSummary, field: string): string | number {
@@ -200,7 +236,8 @@ export function search(db: Db, text: string, limit = 20): SearchHit[] {
   const rows = db.all<RecRow & { snip: string }>(
     `SELECT r.*, snippet(fts, -1, '«', '»', '…', 12) AS snip FROM fts JOIN records r ON r.rowid = fts.rowid
      WHERE fts MATCH ? ORDER BY rank LIMIT ?`, match, limit)
-  return rows.map((r) => ({ record: toSummary(r), snippet: r.snip }))
+  const sum = summarizer(db)
+  return rows.map((r) => ({ record: sum(r), snippet: r.snip }))
 }
 
 export function findDuplicates(db: Db, type: RecordType, name: string, fields: Record<string, FieldValue>): DuplicateHit[] {
