@@ -107,10 +107,21 @@ describe('createRecord', () => {
     expect(existsSync(join(vault, 'Companies/Quill Labs Two.md'))).toBe(true)
   })
 
-  it('sanitizes file names and suffixes cross-type clashes', async () => {
-    await createRecord(ctx, 'company', 'Acme/Beta: Labs')
-    expect(read('Companies/Acme-Beta- Labs.md')).toContain("\nname: 'Acme/Beta: Labs'\n")
+  it('rejects names that would break file names or links', async () => {
+    const n = (await history.list(50)).length
+    await expect(createRecord(ctx, 'company', 'Acme / Labs')).rejects.toThrow(/can't contain \//)
+    await expect(createRecord(ctx, 'company', 'Acme | Labs')).rejects.toThrow(/can't contain \|/)
+    await expect(createRecord(ctx, 'company', 'Acme:Labs#1')).rejects.toBeInstanceOf(
+      ValidationError
+    )
+    await expect(createRecord(ctx, 'company', 'Acme  Labs')).rejects.toBeInstanceOf(ValidationError)
+    expect(
+      (await fsp.readdir(join(vault, 'Companies'))).filter((f) => f.startsWith('Acme'))
+    ).toEqual([])
+    expect(await history.list(50)).toHaveLength(n)
+  })
 
+  it('suffixes cross-type clashes', async () => {
     const r = await createRecord(ctx, 'company', 'Sam Okafor')
     expect(isResult(r) && r.entry.message).toBe('Created Sam Okafor (company)')
     expect(read('Companies/Sam Okafor (company).md')).toContain('\nname: Sam Okafor (company)\n')
@@ -196,6 +207,16 @@ describe('setFields', () => {
     ])
   })
 
+  it('refuses to change id, type or name', async () => {
+    const before = read(QUILL)
+    await expect(setFields(ctx, QUILL_ID, { id: null })).rejects.toBeInstanceOf(ValidationError)
+    await expect(setFields(ctx, QUILL_ID, { type: 'person' })).rejects.toBeInstanceOf(
+      ValidationError
+    )
+    await expect(setFields(ctx, QUILL_ID, { name: 'Other' })).rejects.toThrow(/rename/)
+    expect(read(QUILL)).toBe(before)
+  })
+
   it('does not write or commit when nothing changes', async () => {
     const latest = (await history.list(1))[0]
     const r = await setFields(ctx, QUILL_ID, { stage: 'seed' })
@@ -251,6 +272,31 @@ describe('rename', () => {
     expect(idx.byId(QUILL_ID)?.path).toBe(QUILL)
   })
 
+  it('rewrites links in loose notes outside the type folders, and undo restores them', async () => {
+    const loose = 'Scratch/Ideas/Follow ups.md'
+    const original = 'Ping [[quill security|Quill]] and [[Quill Security#Notes]].\n'
+    await fsp.mkdir(join(vault, 'Scratch/Ideas'), { recursive: true })
+    await fsp.writeFile(join(vault, loose), original)
+    await fsp.writeFile(join(vault, '.hidden.md'), '[[Quill Security]]\n')
+    const r = await rename(ctx, QUILL_ID, 'Quillon')
+    expect(read(loose)).toBe('Ping [[Quillon|Quill]] and [[Quillon#Notes]].\n')
+    expect(read('.hidden.md')).toBe('[[Quill Security]]\n')
+    expect(r.entry.files).toContain(loose)
+    await undoAction(ctx, r.entry.id)
+    expect(read(loose)).toBe(original)
+  })
+
+  it('rejects bad names and case-only renames, changing nothing', async () => {
+    const before = read(QUILL)
+    const n = (await history.list(50)).length
+    await expect(rename(ctx, QUILL_ID, 'Acme / Labs')).rejects.toThrow(/can't contain \//)
+    await expect(rename(ctx, QUILL_ID, 'Acme | Labs')).rejects.toThrow(/can't contain \|/)
+    await expect(rename(ctx, QUILL_ID, 'quill security')).rejects.toThrow(/capitalization/)
+    expect(read(QUILL)).toBe(before)
+    expect(await fsp.readdir(join(vault, 'Companies'))).toContain('Quill Security.md')
+    expect(await history.list(50)).toHaveLength(n)
+  })
+
   it("suffixes a clashing new name but not the record's own alias", async () => {
     const r = await rename(ctx, QUILL_ID, 'Harbor Analytics')
     expect(r.entry.message).toBe('Renamed Quill Security to Harbor Analytics (company)')
@@ -304,6 +350,43 @@ describe('applyAction', () => {
     expect(read('Themes/New/Deep.md')).toBe('---\ntype: theme\n---\n')
     const all = await fsp.readdir(vault, { recursive: true })
     expect(all.filter((f) => String(f).includes('kew-tmp'))).toEqual([])
+  })
+
+  it('refuses deleting a path while writing a case variant of it', async () => {
+    const before = read(QUILL)
+    await expect(
+      applyAction(ctx, 'bad', [
+        { path: QUILL, apply: () => null },
+        { path: 'Companies/quill security.md', apply: () => 'x' }
+      ])
+    ).rejects.toThrow(/capitalization/)
+    expect(read(QUILL)).toBe(before)
+  })
+
+  it('rolls back earlier writes when a later write fails', async () => {
+    const before = read(QUILL)
+    const n = (await history.list(50)).length
+    const locked = join(vault, 'Locked')
+    ctx.hooks = {
+      beforeWrite: async () => {
+        await fsp.mkdir(locked, { recursive: true })
+        await fsp.chmod(locked, 0o555)
+      }
+    }
+    try {
+      await expect(
+        applyAction(ctx, 'Two files', [
+          { path: QUILL, apply: (c) => c + 'more\n' },
+          { path: 'Locked/new.md', apply: () => 'x' }
+        ])
+      ).rejects.toMatchObject({ code: 'EACCES' })
+    } finally {
+      await fsp.chmod(locked, 0o755)
+    }
+    expect(read(QUILL)).toBe(before)
+    expect(existsSync(join(locked, 'new.md'))).toBe(false)
+    expect(await history.list(50)).toHaveLength(n)
+    expect(idx.byId(QUILL_ID)?.path).toBe(QUILL)
   })
 
   it('refuses paths outside the vault', async () => {

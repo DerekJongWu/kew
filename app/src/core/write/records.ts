@@ -1,11 +1,11 @@
 // Record commands. Each builds file edits and hands them to applyAction.
-import { existsSync } from 'node:fs'
+import { existsSync, promises as fsp } from 'node:fs'
 import { join } from 'node:path'
 import { applyAction, type Ctx, type FileEdit } from './apply'
 import { newNote, parseNote, setKeys, setBody as setNoteBody } from '../note'
 import { safeFilename, uniqueName } from '../names'
 import { newId } from '../ids'
-import { rewriteLinks, unlink } from '../links'
+import { extractLinks, rewriteLinks, unlink } from '../links'
 import { coerceValue, ValidationError } from '../schema/validate'
 import { aliasesOf, key } from '../index/indexer'
 import type { FieldDef } from '../schema/types'
@@ -71,10 +71,34 @@ function freeName(
 const companyOf = (fields: Record<string, FieldValue>): string =>
   typeof fields.company === 'string' ? unlink(fields.company) : ''
 
+// Characters that break file names (/ \ : * ? " < >) or links (| # [ ] ^).
+// Rejecting them keeps name == file name == link text.
+const BAD_NAME_CHARS = /[\\/:*?"<>|#^[\]]/g
+
 function cleanName(name: string): string {
   const n = name.trim()
   if (!n) throw new ValidationError('A name is required.')
+  const bad = [...new Set(n.match(BAD_NAME_CHARS) ?? [])]
+  if (bad.length > 0) {
+    throw new ValidationError(
+      `A name can't contain ${bad.join(' ')} (they break file names or links).`
+    )
+  }
+  if (safeFilename(n) !== n)
+    throw new ValidationError("A name can't contain repeated spaces or line breaks.")
   return n
+}
+
+/** Every .md file in the vault, skipping dot-files and dot-directories. */
+async function vaultNotes(root: string, rel = ''): Promise<string[]> {
+  const out: string[] = []
+  for (const d of await fsp.readdir(join(root, rel), { withFileTypes: true })) {
+    if (d.name.startsWith('.')) continue
+    const p = rel ? `${rel}/${d.name}` : d.name
+    if (d.isDirectory()) out.push(...(await vaultNotes(root, p)))
+    else if (d.isFile() && /\.md$/i.test(d.name)) out.push(p)
+  }
+  return out
 }
 
 export async function createRecord(
@@ -94,7 +118,7 @@ export async function createRecord(
     const duplicates = ctx.index.findDuplicates(type, wanted, given)
     if (duplicates.length > 0) return { duplicates }
   }
-  const finalName = freeName(ctx, type, wanted, companyOf(given))
+  const finalName = cleanName(freeName(ctx, type, wanted, companyOf(given)))
 
   const template = parseNote(ctx.templates[type] ?? '')
   const fm: Record<string, FieldValue> = { id: newId(), type, name: finalName }
@@ -134,6 +158,10 @@ export async function setFields(
   changes: Record<string, FieldValue>
 ): Promise<ActionResult> {
   const rec = record(ctx, id)
+  for (const k of Object.keys(changes)) {
+    if (k === 'name') throw new ValidationError('Use rename to change a name.')
+    if (SYSTEM_KEYS.has(k)) throw new ValidationError(`The ${k} field can't be changed.`)
+  }
   const coerced = coerceAll(ctx, rec.type, changes)
   const keyChanges: Record<string, FieldValue | undefined> = {}
   for (const [k, v] of Object.entries(coerced)) keyChanges[k] = v === null ? undefined : v
@@ -166,8 +194,11 @@ export async function setBody(ctx: Ctx, id: string, body: string): Promise<Actio
 
 export async function rename(ctx: Ctx, id: string, newName: string): Promise<ActionResult> {
   const rec = record(ctx, id)
-  const name = freeName(ctx, rec.type, cleanName(newName), companyOf(rec.fields), rec)
+  const name = cleanName(freeName(ctx, rec.type, cleanName(newName), companyOf(rec.fields), rec))
   const newPath = filePath(ctx, rec.type, name)
+  if (newPath !== rec.path && newPath.toLowerCase() === rec.path.toLowerCase()) {
+    throw new ValidationError("Changing only capitalization isn't supported yet.")
+  }
   const relink = (text: string): string => rewriteLinks(text, rec.name, name)
   const edits: FileEdit[] = [
     {
@@ -179,10 +210,14 @@ export async function rename(ctx: Ctx, id: string, newName: string): Promise<Act
       }
     }
   ]
-  for (const other of ctx.index.backlinks(id)) {
-    if (other.path === rec.path) continue
+  // Every note in the vault, not just indexed records, so loose notes keep working links.
+  const old = key(rec.name)
+  for (const rel of await vaultNotes(ctx.root)) {
+    if (rel === rec.path) continue
+    const text = await fsp.readFile(join(ctx.root, rel), 'utf8')
+    if (!extractLinks(text).some((l) => key(l) === old)) continue
     edits.push({
-      path: other.path,
+      path: rel,
       apply: (current) => (current === null ? null : relink(current))
     })
   }

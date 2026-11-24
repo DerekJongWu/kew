@@ -35,7 +35,7 @@ export class ConflictError extends Error {
   }
 }
 
-type Snapshot = Map<string, { text: string | null; hash: string | null }>
+type Snapshot = Map<string, { text: string | null; hash: string | null; bytes: Buffer | null }>
 
 const hash = (b: Buffer): string => createHash('sha256').update(b).digest('hex')
 
@@ -51,11 +51,11 @@ async function snapshot(root: string, paths: string[]): Promise<Snapshot> {
   for (const rel of paths) {
     try {
       const b = await fsp.readFile(abs(root, rel))
-      out.set(rel, { text: b.toString('utf8'), hash: hash(b) })
+      out.set(rel, { text: b.toString('utf8'), hash: hash(b), bytes: b })
     } catch (e) {
       const code = (e as NodeJS.ErrnoException).code
       if (code !== 'ENOENT' && code !== 'ENOTDIR') throw e
-      out.set(rel, { text: null, hash: null })
+      out.set(rel, { text: null, hash: null, bytes: null })
     }
   }
   return out
@@ -66,7 +66,7 @@ const changedPath = (a: Snapshot, b: Snapshot): string | null => {
   return null
 }
 
-async function writeAtomic(file: string, text: string): Promise<void> {
+async function writeAtomic(file: string, text: string | Buffer): Promise<void> {
   await fsp.mkdir(dirname(file), { recursive: true })
   const tmp = join(dirname(file), `.${basename(file)}.kew-tmp-${randomBytes(6).toString('hex')}`)
   try {
@@ -77,8 +77,6 @@ async function writeAtomic(file: string, text: string): Promise<void> {
     throw e
   }
 }
-
-const caseOnly = (a: string, b: string): boolean => a !== b && a.toLowerCase() === b.toLowerCase()
 
 interface Planned {
   edit: FileEdit
@@ -91,7 +89,7 @@ function plan(edits: FileEdit[], snap: Snapshot): Planned[] {
   return edits.map((edit) => {
     const current = snap.get(edit.path)!.text
     const to = edit.newPath ?? edit.path
-    if (to !== edit.path && !caseOnly(to, edit.path) && snap.get(to)!.text !== null) {
+    if (to !== edit.path && snap.get(to)!.text !== null) {
       throw new Error(`Can't move ${edit.path}: ${to} already exists.`)
     }
     return { edit, to, current, result: edit.apply(current) }
@@ -130,19 +128,29 @@ export async function applyAction(
     return { entry: latest, changedIds: [] }
   }
 
-  for (const p of planned) {
-    const from = abs(ctx.root, p.edit.path)
-    const to = abs(ctx.root, p.to)
-    if (!isMove(p) && p.result === p.current) continue
-    if (p.result === null) {
-      await fsp.rm(from, { force: true })
-    } else if (caseOnly(p.to, p.edit.path)) {
-      await fsp.rename(from, to)
-      await writeAtomic(to, p.result)
-    } else {
-      await writeAtomic(to, p.result)
-      if (isMove(p)) await fsp.rm(from, { force: true })
+  refuseCaseVariants(planned)
+
+  // Write phase. On any failure, put every touched path back as it was.
+  const touched: string[] = []
+  try {
+    for (const p of planned) {
+      if (!isMove(p) && p.result === p.current) continue
+      const from = abs(ctx.root, p.edit.path)
+      if (p.result === null) {
+        touched.push(p.edit.path)
+        await fsp.rm(from, { force: true })
+      } else {
+        touched.push(p.to)
+        await writeAtomic(abs(ctx.root, p.to), p.result)
+        if (isMove(p)) {
+          touched.push(p.edit.path)
+          await fsp.rm(from, { force: true })
+        }
+      }
     }
+  } catch (e) {
+    await rollBack(ctx, touched, snap)
+    throw e
   }
 
   const entry = await ctx.history.commitAction(paths, message, opts.kind ?? 'action')
@@ -167,6 +175,43 @@ export async function applyAction(
     if (rec) ids.add(rec.id)
   }
   return { entry, changedIds: [...ids] }
+}
+
+/**
+ * On a case-insensitive disk, deleting or moving away from "A.md" while writing
+ * "a.md" would remove the file just written. Refuse such actions outright.
+ */
+function refuseCaseVariants(planned: Planned[]): void {
+  const written = planned.filter((p) => p.result !== null).map((p) => p.to)
+  const gone = planned.flatMap((p) =>
+    p.result === null ? [p.edit.path] : p.to !== p.edit.path ? [p.edit.path] : []
+  )
+  for (const g of gone) {
+    const clash = written.find((w) => w !== g && w.toLowerCase() === g.toLowerCase())
+    if (clash) {
+      throw new Error(
+        `Can't remove ${g} while writing ${clash}: the names differ only in capitalization.`
+      )
+    }
+  }
+}
+
+async function rollBack(ctx: Ctx, touched: string[], snap: Snapshot): Promise<void> {
+  const failed: string[] = []
+  for (const rel of [...new Set(touched)].reverse()) {
+    const before = snap.get(rel)!
+    try {
+      if (before.bytes === null) await fsp.rm(abs(ctx.root, rel), { force: true })
+      else await writeAtomic(abs(ctx.root, rel), before.bytes)
+      if (before.text === null) ctx.index.removeFile(rel)
+      else ctx.index.indexFile(rel, before.text, ctx.schema())
+    } catch {
+      failed.push(rel)
+    }
+  }
+  if (failed.length > 0) {
+    throw new Error(`A write failed and these files could not be put back: ${failed.join(', ')}`)
+  }
 }
 
 const isMoveSource = (planned: Planned[], rel: string): boolean =>
