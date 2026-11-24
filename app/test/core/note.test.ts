@@ -189,3 +189,47 @@ describe('newNote', () => {
     expect(parseNote(t).fm).toEqual({ type: 'person', name: 'AI: x', tags: ['a', 'b'] })
   })
 })
+
+describe('column-0 block lists', () => {
+  it('replaces a column-0 list without orphaning items', () => {
+    const t = load('col0-list.md')
+    const out = setKeys(t, { themes: ['x'] })
+    expect(diffLines(t, out)).toEqual({
+      removed: ['themes:', '- "[[AI]]"', '- "[[Infra]]"'],
+      added: ['themes: [x]']
+    })
+    expect(parseNote(out).fm).toMatchObject({
+      themes: ['x'],
+      status: 'tracking',
+      tags: ['company']
+    })
+  })
+  it('removes a column-0 list entirely', () => {
+    const out = setKeys(load('col0-list.md'), { themes: undefined })
+    const p = parseNote(out)
+    expect(p.ok).toBe(true)
+    expect(p.fm).toEqual({ type: 'company', status: 'tracking', tags: ['company'] })
+  })
+})
+
+describe('mixed line endings', () => {
+  it('changes only the target line, byte for byte', () => {
+    const t = load('mixed-eol.md')
+    const out = setKeys(t, { owner: 'Pat' })
+    expect(out).toBe(t.replace('owner: Sam', 'owner: Pat'))
+  })
+  it('uses the dominant EOL for new lines and leaves others untouched', () => {
+    const t = load('mixed-eol.md')
+    const out = setKeys(t, { stage: 'seed' })
+    expect(out).toBe(t.replace('tags: [person]\r\n', 'stage: seed\r\ntags: [person]\r\n'))
+    const app = appendToSection(t, '## Notes', 'more')
+    expect(app.startsWith(t.slice(0, t.indexOf('- hi')))).toBe(true)
+    expect(app).toContain('- hi\n- more\r\n')
+  })
+})
+
+describe('safety re-parse', () => {
+  it('throws NoteParseError instead of returning unparseable frontmatter', () => {
+    expect(() => setKeys(load('block-lists.md'), { '{bad': 'x' })).toThrow(NoteParseError)
+  })
+})
