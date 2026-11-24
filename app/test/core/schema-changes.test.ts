@@ -16,6 +16,7 @@ import {
   saveViews,
   serializeViews
 } from '../../src/core/write/schema-changes'
+import { addView, removeView, toggleFilter, updateView } from '../../src/renderer/src/lib/pipeline'
 
 const FIXTURE = join(__dirname, '../fixtures/vaults/basic')
 const initial = loadSchema(readFileSync(join(FIXTURE, '.kew/schema.yaml'), 'utf8'), null).schema
@@ -213,5 +214,21 @@ describe('views', () => {
     expect(r.entry.message).toBe('Saved views')
     expect(read('.kew/views.yaml')).toBe(serializeViews(views))
     expect(loadViews(read('.kew/views.yaml'))).toEqual(views)
+  })
+})
+
+describe('views round trip', () => {
+  it('loadViews(serializeViews(v)) keeps views produced by the Pipeline operations', () => {
+    const base = loadViews(null)
+    let views = addView(base, base[0], 'My "quoted": view').views
+    views = updateView(views, 'my-quoted-view', { name: 'Renamed: x' })
+    views = updateView(views, 'my-quoted-view', {
+      filters: toggleFilter(toggleFilter({}, 'themes', '[[AI Agent Security]]'), 'source', 'inbound-form')
+    })
+    views = updateView(views, 'my-quoted-view', { sort: { field: 'first_seen', dir: 'desc' }, layout: 'table' })
+    views = updateView(views, 'my-quoted-view', { sort: undefined })
+    views = updateView(views, 'my-quoted-view', { sort: { field: 'name', dir: 'asc' } })
+    expect(loadViews(serializeViews(views))).toEqual(views)
+    expect(loadViews(serializeViews(removeView(views, 'inbound')))).toHaveLength(views.length - 1)
   })
 })

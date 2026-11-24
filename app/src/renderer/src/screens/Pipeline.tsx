@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { kew, useQuery } from '../api'
 import { router, useRoute } from '../router'
 import { plainError, status } from '../lib/actions'
@@ -16,6 +16,7 @@ import { Board } from '../components/Board'
 import { DataTable } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
 import { FilterBar, type FilterOption } from '../components/FilterBar'
+import { createViewsStore } from '../lib/views-store'
 import { PassForm } from '../components/RowActions'
 import { ViewTabs } from '../components/ViewTabs'
 
@@ -23,7 +24,11 @@ const openRecord = (id: string): void => router.navigate({ name: 'record', id })
 
 export function Pipeline(): React.JSX.Element {
   const [route] = useRoute()
-  const { data: views, error: viewsError, reload } = useQuery(() => kew.views(), [])
+  const { data: saved, error: viewsError, reload } = useQuery(() => kew.views(), [])
+  // The views on screen: edits show at once and saves run in order (see lib/views-store.ts).
+  const [store] = useState(() => createViewsStore((v) => status.run(() => kew.saveViews(v))))
+  useEffect(() => store.sync(saved), [store, saved])
+  const views = useSyncExternalStore(store.subscribe, store.get)
   const { data: schema } = useQuery(() => kew.schema(), [])
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<Set<string>>(new Set())
@@ -59,20 +64,23 @@ export function Pipeline(): React.JSX.Element {
     [relations.map((f) => f.key).join(',')]
   )
 
-  const persist = (next: ViewDef[], selectId?: string): void => {
+  const persist = (fn: (views: ViewDef[]) => ViewDef[], selectId?: string): void => {
     setError(null)
-    status
-      .run(() => kew.saveViews(next))
-      .then(
-        () => {
-          reload()
-          if (selectId) router.navigate({ name: 'pipeline', viewId: selectId })
-        },
-        (e) => setError(plainError(e))
-      )
+    store.edit(fn).then(
+      () => {
+        reload()
+        if (selectId) router.navigate({ name: 'pipeline', viewId: selectId })
+      },
+      (e) => (setError(plainError(e)), reload())
+    )
   }
-  const patch = (p: Partial<ViewDef>): void =>
-    view && views && persist(updateView(views, view.id, p))
+  const patch = (fn: (v: ViewDef) => Partial<ViewDef>): void => {
+    if (!view) return
+    persist((vs) => {
+      const cur = vs.find((x) => x.id === view.id)
+      return cur ? updateView(vs, cur.id, fn(cur)) : vs
+    })
+  }
 
   const run = (id: string, fn: () => Promise<unknown>): void => {
     setError(null)
@@ -140,13 +148,13 @@ export function Pipeline(): React.JSX.Element {
             activeId={view.id}
             onSelect={(id) => router.navigate({ name: 'pipeline', viewId: id })}
             onAdd={(name) => {
-              const r = addView(views, view, name)
-              persist(r.views, r.id)
+              const id = addView(store.get() ?? views, view, name).id
+              persist((vs) => addView(vs, vs.find((x) => x.id === view.id) ?? view, name).views, id)
             }}
-            onRename={(id, name) => persist(updateView(views, id, { name }))}
+            onRename={(id, name) => persist((vs) => updateView(vs, id, { name }))}
             onDelete={(id) => {
-              const next = removeView(views, id)
-              persist(next, id === view.id ? next[0]?.id : undefined)
+              const next = removeView(store.get() ?? views, id)
+              persist((vs) => removeView(vs, id), id === view.id ? next[0]?.id : undefined)
             }}
           />
           <div className="pipeline-tools">
@@ -154,8 +162,10 @@ export function Pipeline(): React.JSX.Element {
               fields={typeDef.fields}
               filters={view.filters}
               optionsFor={optionsFor}
-              onToggle={(key, value) => patch({ filters: toggleFilter(view.filters, key, value) })}
-              onClear={() => patch({ filters: {} })}
+              onToggle={(key, value) =>
+                patch((v) => ({ filters: toggleFilter(v.filters, key, value) }))
+              }
+              onClear={() => patch(() => ({ filters: {} }))}
             />
             <div className="seg" role="group" aria-label="Layout">
               {(['board', 'table'] as const).map((l) => (
@@ -164,7 +174,7 @@ export function Pipeline(): React.JSX.Element {
                   type="button"
                   className="seg-btn"
                   aria-pressed={view.layout === l}
-                  onClick={() => view.layout !== l && patch({ layout: l })}
+                  onClick={() => view.layout !== l && patch(() => ({ layout: l }))}
                 >
                   {l === 'board' ? 'Board' : 'Table'}
                 </button>
@@ -191,7 +201,7 @@ export function Pipeline(): React.JSX.Element {
                 rows={rows}
                 columns={tableColumns}
                 sort={view.sort}
-                onSort={(f) => patch({ sort: nextSort(view.sort, f) })}
+                onSort={(f) => patch((v) => ({ sort: nextSort(v.sort, f) }))}
                 onOpen={openRecord}
               />
             ) : (
