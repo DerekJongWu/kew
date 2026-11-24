@@ -21,6 +21,8 @@ export class Index {
     this.schema = schema
     indexFile(this.db, rel, text, schema)
   }
+  /** Sets the schema for queries without re-indexing (an index reopened from disk). */
+  useSchema(schema: Schema): void { this.schema = schema }
   removeFile(rel: string): void { removeFile(this.db, rel) }
   async rebuild(root: string, schema: Schema): Promise<void> {
     this.schema = schema
