@@ -71,4 +71,5 @@ export interface KewApi {
   openInFinder(id: string): Promise<void>
   // events
   onChanged(cb: (changedIds: string[]) => void): () => void
+  onMenuUndo(cb: () => void): () => void                              // Edit > Undo / ⌘Z from the app menu
 }

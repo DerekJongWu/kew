@@ -4,6 +4,7 @@ import { kew } from '../api'
 import { router } from '../router'
 import { DESTINATIONS, SETTINGS, TYPE_LABEL } from '../lib/destinations'
 import { plainError, status } from '../lib/actions'
+import { defaultSelection, selectionKey } from '../lib/command-selection'
 import type { DuplicateHit, RecordType, SearchHit } from '../../../shared/api'
 import { Kbd } from './Chip'
 
@@ -38,6 +39,8 @@ export function CommandBar({
   const [creating, setCreating] = useState<RecordType | null>(null)
   const [dupes, setDupes] = useState<DuplicateHit[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [picked, setPicked] = useState<{ key: string; value: string } | null>(null)
   const [restore] = useState(() => document.activeElement) // focus goes back here on close
 
   const close = (): void => {
@@ -53,8 +56,16 @@ export function CommandBar({
     if (creating || !q.trim()) return
     let live = true
     kew.search(q.trim(), 8).then(
-      (h) => live && setHits(h),
-      () => live && setHits([])
+      (h) => {
+        if (!live) return
+        setHits(h)
+        setSearchError(null)
+      },
+      (e) => {
+        if (!live) return
+        setHits([])
+        setSearchError(`Search failed: ${plainError(e)}`)
+      }
     )
     return () => {
       live = false
@@ -104,6 +115,12 @@ export function CommandBar({
   const needle = q.trim().toLowerCase()
   const shown = commands.filter((c) => c.label.toLowerCase().includes(needle))
   const noun = creating ? TYPE_LABEL[creating].toLowerCase() : ''
+  // The highlight follows the list: a pick made with the mouse or arrows holds only until the
+  // query or the (asynchronously arriving) hits change, then resets to the first record hit.
+  const sel = { creating: creating !== null, dupes, hits: shownHits, commands: shown, q }
+  const key = selectionKey(sel)
+  const value = picked?.key === key ? picked.value : defaultSelection(sel)
+  const shownError = error ?? (!creating && q.trim() ? searchError : null)
 
   return (
     <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && close()}>
@@ -112,6 +129,8 @@ export function CommandBar({
         label="Command bar"
         shouldFilter={false}
         loop
+        value={value}
+        onValueChange={(v) => setPicked({ key, value: v })}
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
             e.preventDefault()
@@ -133,9 +152,9 @@ export function CommandBar({
           }}
           placeholder={creating ? `Name of the new ${noun}` : 'Jump to a record or run a command'}
         />
-        {error && (
+        {shownError && (
           <p className="row-error cmdk-error" role="alert">
-            {error}
+            {shownError}
           </p>
         )}
         <Command.List className="cmdk-list">

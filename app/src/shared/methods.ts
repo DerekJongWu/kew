@@ -1,8 +1,8 @@
 import type { KewApi } from './api'
 
-export type InvokeMethod = Exclude<keyof KewApi, 'onChanged'>
+export type InvokeMethod = Exclude<keyof KewApi, 'onChanged' | 'onMenuUndo'>
 
-/** Every KewApi method that crosses IPC as `kew:<name>` (onChanged is an event, not a call). */
+/** Every KewApi method that crosses IPC as `kew:<name>` (onChanged and onMenuUndo are events, not calls). */
 export const KEW_METHODS = [
   'getState',
   'planSetup',
@@ -36,4 +36,6 @@ type Missing = Exclude<InvokeMethod, (typeof KEW_METHODS)[number]>
 export const _exhaustive: [Missing] extends [never] ? true : never = true
 
 export const CHANGED_CHANNEL = 'kew:changed'
+/** Sent by Edit > Undo (⌘Z) in the app menu. */
+export const MENU_UNDO_CHANNEL = 'kew:menu-undo'
 export type Envelope = { value: unknown } | { error: { name: string; message: string } }

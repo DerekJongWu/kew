@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { KEW_METHODS, CHANGED_CHANNEL, type Envelope } from '../shared/methods'
+import { KEW_METHODS, CHANGED_CHANNEL, MENU_UNDO_CHANNEL, type Envelope } from '../shared/methods'
 import type { KewApi } from '../shared/api'
 
 async function call(method: string, args: unknown[]): Promise<unknown> {
@@ -17,6 +17,11 @@ const kew = {
     const listener = (_: unknown, ids: string[]): void => cb(ids)
     ipcRenderer.on(CHANGED_CHANNEL, listener)
     return () => ipcRenderer.removeListener(CHANGED_CHANNEL, listener)
+  },
+  onMenuUndo(cb: () => void): () => void {
+    const listener = (): void => cb()
+    ipcRenderer.on(MENU_UNDO_CHANNEL, listener)
+    return () => ipcRenderer.removeListener(MENU_UNDO_CHANNEL, listener)
   }
 } as KewApi
 for (const m of KEW_METHODS) {

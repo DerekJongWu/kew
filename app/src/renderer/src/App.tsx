@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { kew, useQuery } from './api'
 import { router, useRoute } from './router'
-import { latestUndoable, status } from './lib/actions'
+import { latestUndoable, plainError, status } from './lib/actions'
+import { isEditable } from './lib/editable'
+import { Button } from './components/Button'
 import { DESTINATIONS, SETTINGS } from './lib/destinations'
 import { Sidebar } from './components/Sidebar'
 import { CommandBar } from './components/CommandBar'
@@ -10,11 +12,7 @@ import { Today } from './screens/Today'
 import { Placeholder } from './screens/Placeholder'
 import { NoVault } from './screens/NoVault'
 
-const isEditable = (t: EventTarget | null): boolean =>
-  t instanceof HTMLElement &&
-  (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
-
-/** ⌘Z: undo the newest action. Failures land in the status line in plain words. */
+/** ⌘Z (Edit > Undo in the app menu): undo the newest action. Failures land in the status line in plain words. */
 async function undoLast(): Promise<void> {
   await status
     .run(async () => {
@@ -26,7 +24,7 @@ async function undoLast(): Promise<void> {
 }
 
 function App(): React.JSX.Element {
-  const { data: state } = useQuery(() => kew.getState(), [])
+  const { data: state, error: stateError, reload } = useQuery(() => kew.getState(), [])
   const [route] = useRoute()
   const [commandOpen, setCommandOpen] = useState(false)
 
@@ -38,18 +36,38 @@ function App(): React.JSX.Element {
       if (key === 'k') setCommandOpen((o) => !o)
       else if (key === '[') router.back()
       else if (key === ']') router.forward()
-      else if (key === 'z' && !e.shiftKey && !isEditable(e.target) && !commandOpen) void undoLast()
       else if (nav && !commandOpen) router.navigate(nav.route)
       else return
       e.preventDefault()
     },
     [commandOpen]
   )
+  // Edit > Undo: undo typing in a text field, otherwise the latest vault change.
+  useEffect(
+    () =>
+      kew.onMenuUndo(() => {
+        if (isEditable(document.activeElement as HTMLElement | null)) document.execCommand('undo')
+        else void undoLast()
+      }),
+    []
+  )
   useEffect(() => {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onKey])
 
+  if (!state && stateError)
+    return (
+      <div className="no-vault drag">
+        <div className="empty" role="alert">
+          <p className="empty-title">Kew couldn’t load your vault</p>
+          <p className="empty-text">{plainError(stateError)}</p>
+          <Button className="empty-action" onClick={reload}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    )
   if (!state) return <div className="app-loading drag" />
   if (!state.vault) return <NoVault />
 

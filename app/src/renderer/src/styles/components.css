@@ -647,7 +647,10 @@
   font-weight: var(--weight-strong);
   color: var(--text);
   text-align: left;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .row-name:hover {
@@ -661,7 +664,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.row-date {
+  flex-shrink: 0; /* the name truncates before the date does */
+}
 .row-chips {
+  flex: none;
   display: inline-flex;
   gap: var(--s-1);
   align-self: center;
@@ -714,6 +721,9 @@
   max-width: 52ch;
   font-size: var(--text-sm);
   color: var(--text-2);
+}
+.empty-action {
+  margin-top: var(--s-3);
 }
 .screen > .empty {
   padding-left: 0;

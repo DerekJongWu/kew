@@ -14,10 +14,12 @@ app.whenReady().then(async () => {
   let result = 'error'
   try {
     await win.loadURL('data:text/html,<title>smoke</title>')
-    result = await win.webContents.executeJavaScript('typeof window.kew + "|" + typeof window.kew.today')
+    result = await win.webContents.executeJavaScript(
+      'typeof window.kew + "|" + typeof window.kew.today + "|" + typeof window.kew.onMenuUndo'
+    )
   } catch (e) {
     result = 'error: ' + e.message
   }
   console.log(result)
-  app.exit(result === 'object|function' ? 0 : 1)
+  app.exit(result === 'object|function|function' ? 0 : 1)
 })

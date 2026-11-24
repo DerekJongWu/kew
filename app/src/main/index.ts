@@ -1,9 +1,10 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, nativeTheme, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { closeCurrentVault, registerIpc, reopenLast } from './ipc'
 import { createChangeHandler } from './changes'
+import { menuTemplate } from './menu'
 import { watchVault, type VaultWatcher } from './watcher'
 import { CHANGED_CHANNEL } from '../shared/methods'
 import type { Vault } from '../core/vault'
@@ -88,6 +89,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('app.kew.desktop')
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate({ dev: !app.isPackaged })))
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
