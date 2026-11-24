@@ -35,11 +35,6 @@ function current(rec: RecordSummary, text: string | null): string {
   return text
 }
 
-const companyStatusEdit = (c: RecordSummary, status: string): FileEdit => ({
-  path: c.path,
-  apply: (text) => setKeys(current(c, text), { pipeline_status: status })
-})
-
 export async function logOutreach(ctx: Ctx, personId: string, e: NewEvent): Promise<ActionResult> {
   const p = person(ctx, personId)
   const date = e.date ?? ctx.today()
@@ -96,8 +91,16 @@ export async function weMet(ctx: Ctx, personId: string): Promise<ActionResult> {
     { path: p.path, apply: (text) => setKeys(current(p, text), { met: true }) }
   ]
   const c = companyOf(ctx, p)
-  const cat = c ? categoryOf(ctx, c.fields.pipeline_status) : undefined
-  if (c && (cat === 'new' || cat === 'in-progress')) edits.push(companyStatusEdit(c, 'active'))
+  if (c) {
+    edits.push({
+      path: c.path,
+      apply: (text) => {
+        const t = current(c, text)
+        const cat = categoryOf(ctx, parseNote(t).fm.pipeline_status)
+        return cat === 'new' || cat === 'in-progress' ? setKeys(t, { pipeline_status: 'active' }) : t
+      }
+    })
+  }
   return applyAction(ctx, `Met ${p.name}`, edits)
 }
 

@@ -70,6 +70,13 @@ describe('parseNote', () => {
 })
 
 describe('setKeys', () => {
+  it('writes booleans bare but keeps the string "true" quoted', () => {
+    const t = load('block-lists.md')
+    expect(setKeys(t, { met: true })).toMatch(/^met: true$/m)
+    expect(parseNote(setKeys(t, { met: true })).fm.met).toBe(true)
+    expect(setKeys(t, { met: false })).toMatch(/^met: false$/m)
+    expect(setKeys(t, { x: 'true' })).toMatch(/^x: 'true'$/m)
+  })
   it('changes only the target line, keeping comments and block lists', () => {
     const t = load('block-lists.md')
     const out = setKeys(t, { owner: 'Pat' })

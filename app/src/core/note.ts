@@ -83,7 +83,7 @@ export function parseNote(text: string): ParsedNote {
 
 function plainScalar(v: string | number | boolean | null | undefined, inFlow: boolean): string {
   if (v === undefined || v === null || v === '') return ''
-  if (typeof v === 'number') return String(v)
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
   const s = String(v)
     .replace(/\s*\n\s*/g, ' ')
     .trim()

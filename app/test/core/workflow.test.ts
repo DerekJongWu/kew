@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fsp, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { parseNote } from '../../src/core/note'
 import { History } from '../../src/core/history'
 import { openIndex, type Index } from '../../src/core/index'
 import { loadSchema } from '../../src/core/schema/load'
@@ -117,14 +118,25 @@ describe('weMet', () => {
     const a = idOf('Sam Okafor')
     const r = await weMet(ctx, a)
     expect(r.entry.message).toBe('Met Sam Okafor')
-    expect(idx.byId(a)!.fields.met).toBe('true')
+    expect(read('People/Sam Okafor.md')).toMatch(/^met: true$/m)
+    expect(parseNote(read('People/Sam Okafor.md')).fm.met).toBe(true)
+    expect(idx.byId(a)!.fields.met).toBe(true)
     expect(status('Quill Security')).toBe('active')
     const again = await weMet(ctx, a)
     expect(again.changedIds).toEqual([])
     const t = idOf('Tomas Veld')
     await weMet(ctx, t)
-    expect(idx.byId(t)!.fields.met).toBe('true')
+    expect(idx.byId(t)!.fields.met).toBe(true)
     expect(status('Fernwood Robotics')).toBe('passed')
+  })
+
+  it('keeps a hand-written boolean met and counts it as met for follow-ups', async () => {
+    const ines = idOf('Ines Calder')
+    await weMet(ctx, ines)
+    expect(read('People/Ines Calder.md')).toMatch(/^met: true$/m)
+    expect(status('Harbor Analytics')).toBe('active')
+    const t = idx.today(TODAY)
+    expect(t.followUps.some((x) => x.person.name === 'Ines Calder')).toBe(true)
   })
 })
 
