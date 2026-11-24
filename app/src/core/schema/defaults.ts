@@ -95,6 +95,7 @@ export const DEFAULT_SCHEMA: Schema = {
       fields: [
         f('system', 'id', 'ID', 'text'),
         f('system', 'type', 'Type', 'text'),
+        f('system', 'name', 'Name', 'text'),
         f('system', 'date', 'Date', 'date'),
         f('system', 'company', 'Company', 'relation', { target: 'company' }),
         f('system', 'attendees', 'Attendees', 'relation', { target: 'person', multiple: true }),

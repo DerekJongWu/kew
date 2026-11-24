@@ -13,6 +13,11 @@ describe('schema load', () => {
     expect(error).toBeNull()
     expect(schema).toEqual(DEFAULT_SCHEMA)
   })
+  it('gives every type a system name field', () => {
+    for (const t of Object.values(DEFAULT_SCHEMA.types)) {
+      expect(t.fields.find((f) => f.key === 'name')).toMatchObject({ tier: 'system', type: 'text', label: 'Name' })
+    }
+  })
   it('falls back to lastValid on broken YAML', () => {
     const last = structuredClone(DEFAULT_SCHEMA)
     const r = loadSchema('version: [unclosed', last)
