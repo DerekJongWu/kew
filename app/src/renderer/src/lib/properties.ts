@@ -97,3 +97,20 @@ export function guessType(v: FieldValue | undefined): FieldType {
   if (/^https?:\/\//.test(s)) return 'url'
   return 'text'
 }
+
+/**
+ * Saves a text field's draft if it differs from the stored value and wasn't already sent.
+ * Resolves when the write finishes (so a flush can wait for it); a failed write clears `sent`.
+ */
+export async function saveDraft(
+  draft: string,
+  saved: string,
+  sent: { current: string | null },
+  commit: (v: FieldValue) => Promise<boolean>
+): Promise<void> {
+  const next = draft.trim()
+  if (next === saved || next === sent.current) return
+  sent.current = next
+  const ok = await commit(next === '' ? null : next)
+  if (!ok && sent.current === next) sent.current = null
+}

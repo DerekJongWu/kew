@@ -533,6 +533,33 @@ async function closeFlush(win) {
   log('window close: closed', win.isDestroyed(), '| text saved:', readAny('People', 'Mara Quintero').includes('Typed just before closing.'))
 }
 
+/**
+ * ⌘Q right after typing into a text field (no blur): quit waits for the save. Opens a fresh window
+ * first (the previous step closed the last one). The value is checked on disk once the app has
+ * quit (the 'quit' event) and again by the caller after the process exits (path printed below).
+ */
+async function quitFlush() {
+  app.emit('activate') // macOS: dock click with no windows opens a new one
+  let win = null
+  while (!win) {
+    await sleep(100)
+    win = BrowserWindow.getAllWindows()[0]
+  }
+  if (win.webContents.isLoading()) await new Promise((r) => win.webContents.once('did-finish-load', r))
+  win.setSize(1280, 800)
+  await waitFor(win, '.today-grid .row')
+  await openRecord(win, 'Lanternfish Data')
+  await js(win, `[...document.querySelectorAll('.prop')].find((r) => r.querySelector('.prop-label')?.textContent === 'Valuation').querySelector('input').focus()`)
+  win.webContents.insertText('$44M post')
+  await sleep(200)
+  const file = join(vaultDir, 'Companies', 'Lanternfish Data.md')
+  console.log('QUIT_CHECK_FILE', file)
+  app.once('quit', () => {
+    log('quit: valuation on disk after quit:', /^valuation: .*\$44M post/m.test(readFileSync(file, 'utf8')))
+  })
+  app.quit()
+}
+
 async function main() {
   await app.whenReady()
   mkdirSync(outDir, { recursive: true })
@@ -593,7 +620,7 @@ async function main() {
 }
 
 main().then(
-  () => app.exit(0),
+  () => quitFlush().catch((e) => (console.error(e), app.exit(1))),
   (e) => {
     console.error(e)
     app.exit(1)

@@ -55,11 +55,12 @@ function startWatcher(v: Vault): void {
 /** Ask one window's renderer to save pending edits; resolves on its ack or after a timeout. */
 function flushWindow(w: BrowserWindow): Promise<void> {
   if (w.isDestroyed()) return Promise.resolve()
+  const wc = w.webContents // captured now: reading it after the window is destroyed throws
   return requestFlush({
-    send: () => w.webContents.send(FLUSH_CHANNEL),
+    send: () => wc.send(FLUSH_CHANNEL),
     onAck: (cb) => {
       const listener = (e: IpcMainEvent): void => {
-        if (e.sender === w.webContents) cb()
+        if (e.sender === wc) cb()
       }
       ipcMain.on(FLUSHED_CHANNEL, listener)
       return () => ipcMain.removeListener(FLUSHED_CHANNEL, listener)
@@ -106,7 +107,10 @@ function createWindow(): void {
   // Closing the window: save pending edits first.
   const guardClose = createCloseGuard(() => flushWindow(mainWindow))
   mainWindow.on('close', (e) => {
-    if (!quitFlushed) guardClose(e, () => mainWindow.close())
+    if (!quitFlushed)
+      guardClose(e, () => {
+        if (!mainWindow.isDestroyed()) mainWindow.close()
+      })
   })
 
   mainWindow.on('ready-to-show', () => {

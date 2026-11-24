@@ -36,7 +36,8 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
     sent.current = null
     if (!editing.current) setDraft(record.name)
   }, [record.name])
-  const save = (): void => {
+  // Returns the rename, so a flush (window close, quit) waits for it to finish.
+  const save = async (): Promise<void> => {
     const next = draft.trim()
     if (next === record.name) return setError(null)
     if (next === sent.current) return
@@ -44,7 +45,7 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
     if (problem) return setError(problem)
     setError(null)
     sent.current = next
-    status
+    return status
       .run(() => kew.rename(record.id, next))
       .then(
         (res) => {
@@ -74,12 +75,12 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
           editing.current = false
-          save()
+          void save()
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            save()
+            void save()
           } else if (e.key === 'Escape') {
             setDraft(record.name)
             setError(null)

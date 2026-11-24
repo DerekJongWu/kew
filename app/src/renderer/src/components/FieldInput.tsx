@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { FieldDef, FieldValue } from '../../../shared/api'
 import { plainError } from '../lib/actions'
-import { displayValue, httpsHref, listValue } from '../lib/properties'
+import { displayValue, httpsHref, listValue, saveDraft } from '../lib/properties'
 import { RelationPicker } from './RelationPicker'
 import { useFlushOnLeave } from '../lib/use-flush'
 
@@ -24,9 +24,16 @@ export function FieldInput({
 }): React.JSX.Element {
   const id = useId()
   const [error, setError] = useState<string | null>(null)
-  const commit = (v: FieldValue): void => {
+  /** Resolves when the write has finished: true if it was saved, false if it failed (shown inline). */
+  const commit = (v: FieldValue): Promise<boolean> => {
     setError(null)
-    onCommit(field.key, v).catch((e) => setError(plainError(e)))
+    return onCommit(field.key, v).then(
+      () => true,
+      (e) => {
+        setError(plainError(e))
+        return false
+      }
+    )
   }
   const messages = [...(error ? [error] : []), ...problems]
   const errId = messages.length ? `${id}-err` : undefined
@@ -68,7 +75,7 @@ interface ControlProps {
   value: FieldValue | undefined
   invalid: boolean
   describedBy?: string
-  commit(v: FieldValue): void
+  commit(v: FieldValue): Promise<boolean>
 }
 
 function Control(p: ControlProps): React.JSX.Element {
@@ -87,7 +94,7 @@ function Control(p: ControlProps): React.JSX.Element {
           id={id}
           className="field field-select prop-field"
           value={v}
-          onChange={(e) => commit(e.target.value || null)}
+          onChange={(e) => void commit(e.target.value || null)}
           {...aria}
         >
           <option value="">—</option>
@@ -107,7 +114,7 @@ function Control(p: ControlProps): React.JSX.Element {
           type="checkbox"
           className="prop-check"
           checked={value === true}
-          onChange={(e) => commit(e.target.checked)}
+          onChange={(e) => void commit(e.target.checked)}
           {...aria}
         />
       )
@@ -120,7 +127,7 @@ function Control(p: ControlProps): React.JSX.Element {
           multiple={field.multiple}
           value={listValue(value)}
           onChange={(next) =>
-            commit(field.multiple ? (next.length ? next : null) : (next[0] ?? null))
+            void commit(field.multiple ? (next.length ? next : null) : (next[0] ?? null))
           }
         />
       )
@@ -150,12 +157,8 @@ function TextInput({
     sent.current = null
     if (!editing.current) setDraft(saved)
   }, [saved])
-  const save = (): void => {
-    const next = draft.trim()
-    if (next === saved || next === sent.current) return
-    sent.current = next
-    commit(next === '' ? null : next)
-  }
+  // Returns the write, so a flush (window close, quit) waits for it to finish.
+  const save = (): Promise<void> => saveDraft(draft, saved, sent, commit)
   useFlushOnLeave(save)
   const href = field.type === 'url' ? httpsHref(saved) : null
   return (
@@ -173,12 +176,12 @@ function TextInput({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
           editing.current = false
-          save()
+          void save()
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            save()
+            void save()
           } else if (e.key === 'Escape') {
             setDraft(saved)
           }
@@ -215,7 +218,9 @@ function DateInput({ id, value, invalid, describedBy, commit }: ControlProps): R
     if (v === saved || v === last.current) return
     if (v !== '' && !isFullDate(v)) return
     last.current = v
-    commit(v === '' ? null : v)
+    void commit(v === '' ? null : v).then((ok) => {
+      if (!ok && last.current === v) last.current = null
+    })
   }
   return (
     <input
@@ -247,12 +252,12 @@ function MultiSelect({
   const options = field.options ?? []
   const [text, setText] = useState('')
   const label = (v: string): string => options.find((o) => o.value === v)?.label ?? v
-  const set = (next: string[]): void => commit(next.length ? next : null)
+  const set = (next: string[]): Promise<boolean> => commit(next.length ? next : null)
   const remaining = options.filter((o) => !list.includes(o.value))
-  const add = (): void => {
+  const add = async (): Promise<void> => {
     const t = text.trim()
-    if (t && !list.includes(t)) set([...list, t])
     setText('')
+    if (t && !list.includes(t)) await set([...list, t])
   }
   useFlushOnLeave(add)
 
@@ -298,11 +303,11 @@ function MultiSelect({
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           onChange={(e) => setText(e.target.value)}
-          onBlur={add}
+          onBlur={() => void add()}
           onKeyDown={(e) => {
             if (e.key !== 'Enter') return
             e.preventDefault()
-            add()
+            void add()
           }}
         />
       )}
