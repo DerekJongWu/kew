@@ -634,10 +634,13 @@
   flex: 1;
   min-width: 180px;
 }
+/* The record name is the row's most important text. Secondary items (company, chips, date)
+   shrink with an ellipsis down to ~6em, then wrap under the name; the name never gives way to them. */
 .row-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--s-2);
+  gap: 0 var(--s-2);
   min-width: 0;
 }
 .row-name {
@@ -647,8 +650,8 @@
   font-weight: var(--weight-strong);
   color: var(--text);
   text-align: left;
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 100%; /* truncates only when the name alone is wider than the row */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -659,17 +662,19 @@
   text-underline-offset: 2px;
 }
 .row-sub {
+  flex: 1 1 6em;
+  max-width: max-content;
+  min-width: 0;
   color: var(--text-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.row-date {
-  flex-shrink: 0; /* the name truncates before the date does */
-}
 .row-chips {
   flex: none;
+  max-width: 100%;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: var(--s-1);
   align-self: center;
 }

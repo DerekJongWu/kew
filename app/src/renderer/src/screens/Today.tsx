@@ -175,7 +175,7 @@ function InboundRow({
             {source && <Chip>{source}</Chip>}
             {stage && <Chip>{stage}</Chip>}
           </span>
-          {seen && <span className="row-sub row-date">Seen {friendlyDate(seen, today)}</span>}
+          {seen && <span className="row-sub">Seen {friendlyDate(seen, today)}</span>}
         </div>
         <p className="row-meta">{what || 'No description yet'}</p>
       </div>
