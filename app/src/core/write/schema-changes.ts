@@ -1,5 +1,7 @@
 // Schema edits and saved views. Each schema change is one action: it writes
 // .kew/schema.yaml and migrates every affected note, so undo reverts all of it.
+import { promises as fsp } from 'node:fs'
+import { join } from 'node:path'
 import { parse, stringify } from 'yaml'
 import { z } from 'zod'
 import { applyAction, type Ctx, type FileEdit } from './apply'
@@ -167,6 +169,8 @@ function migrate(change: SchemaChange, notes: RecordSummary[]): FileEdit[] {
 }
 
 export async function changeSchema(ctx: Ctx, change: SchemaChange): Promise<ActionResult> {
+  const setSchema = ctx.setSchema
+  if (!setSchema) throw new Error('Schema changes need ctx.setSchema, so the index can use the new schema.')
   const notes = affectedNotes(ctx, change)
   const { schema, message } = nextSchema(ctx, change)
   const text = serializeSchema(schema)
@@ -176,11 +180,24 @@ export async function changeSchema(ctx: Ctx, change: SchemaChange): Promise<Acti
   const edits: FileEdit[] = [{ path: SCHEMA_PATH, apply: () => text }, ...migrate(change, notes)]
   const previous = ctx.schema()
   // Notes are re-indexed inside applyAction, so the new schema must already be in force.
-  ctx.setSchema?.(check.schema)
+  setSchema(check.schema)
   try {
     return await applyAction(ctx, message(notes.length), edits)
   } catch (e) {
-    ctx.setSchema?.(previous)
+    // Whatever is on disk now is the truth: adopt its schema and rebuild the index from it.
+    let onDisk = previous
+    try {
+      const loaded = loadSchema(await fsp.readFile(join(ctx.root, SCHEMA_PATH), 'utf8'), previous)
+      if (!loaded.error) onDisk = loaded.schema
+    } catch {
+      // keep the previous schema
+    }
+    setSchema(onDisk)
+    try {
+      await ctx.index.rebuild(ctx.root, onDisk)
+    } catch {
+      // the original error is the one to report
+    }
     throw e
   }
 }

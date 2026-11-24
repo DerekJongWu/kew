@@ -95,6 +95,43 @@ describe('changeSchema', () => {
     expect(companyField('pipeline_status').options!.some((o) => o.value === 'passed')).toBe(true)
   })
 
+  it('after a failure past the writes, ctx and index match what is on disk; the original error is rethrown', async () => {
+    const boom = new Error('history exploded')
+    ctx.history = { ...history, commitExternal: history.commitExternal.bind(history), commitAction: async () => { throw boom } } as unknown as History
+    await expect(
+      changeSchema(ctx, { kind: 'update-field', type: 'company', key: 'pipeline_status', options: stageOptions() })
+    ).rejects.toBe(boom)
+    const onDisk = loadSchema(read('.kew/schema.yaml'), null)
+    expect(onDisk.error).toBeNull()
+    expect(ctx.schema()).toEqual(onDisk.schema)
+    expect(read('Companies/Quill Security.md')).toContain('pipeline_status: contacted\n')
+    const rec = idx.resolveName('Quill Security')!
+    expect(rec.fields.pipeline_status).toBe('contacted')
+    expect(rec.problems).toEqual([])
+  })
+
+  it('restores the old schema in ctx when the action fails before writing', async () => {
+    const old = current
+    const before = read('.kew/schema.yaml')
+    ctx.hooks = { beforeWrite: async () => { throw new Error('stop') } }
+    await expect(
+      changeSchema(ctx, { kind: 'update-field', type: 'company', key: 'pipeline_status', options: stageOptions() })
+    ).rejects.toThrow('stop')
+    expect(ctx.schema()).toEqual(old)
+    expect(read('.kew/schema.yaml')).toBe(before)
+    expect(read('Companies/Quill Security.md')).toContain('pipeline_status: reached-out\n')
+    expect(idx.resolveName('Quill Security')!.problems).toEqual([])
+  })
+
+  it('refuses schema changes when ctx has no setSchema, writing nothing', async () => {
+    const before = read('.kew/schema.yaml')
+    delete ctx.setSchema
+    await expect(
+      changeSchema(ctx, { kind: 'delete-field', type: 'company', key: 'stage' })
+    ).rejects.toThrow(/setSchema/)
+    expect(read('.kew/schema.yaml')).toBe(before)
+  })
+
   it('renames a field key, keeping values and other lines', async () => {
     const before = read('Companies/Quill Security.md')
     const change = { kind: 'rename-field', type: 'company', from: 'stage', to: 'round_stage' } as const
