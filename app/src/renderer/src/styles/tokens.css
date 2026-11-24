@@ -5,10 +5,11 @@
  * glasshouses. The look is a clear pane: cool, near-colourless surfaces, crisp native type,
  * hairline structure, and dense rows that put names and dates first. Nothing decorates.
  *
- * Distinctive choice: one accent, Palm House green — a deep verdigris (#0D6A50 light,
- * #58C9A2 dark). It is the only colour in the interface and it always means "yours to act on":
- * the current place, the primary action, keyboard focus and counts of things that are due.
- * Neutrals are tinted a few degrees toward it so the green reads as native, not applied.
+ * Distinctive choice: one accent, Cobalt glass — a deep, slightly inky cobalt (#2148C0 light,
+ * #7FA2FF dark), the blue of old glasshouse panes. It is the only colour in the interface and
+ * it always means "yours to act on": the current place, the primary action, keyboard focus and
+ * counts of things that are due. Neutrals lean a few degrees cool toward it so the blue reads
+ * as native, not applied.
  *
  * Type: the macOS system face (SF Pro Text / Display via -apple-system). No webfont is loaded,
  * so nothing touches the network and type renders with native hinting at small sizes.
@@ -21,25 +22,25 @@
   color-scheme: light dark;
 
   /* Colour: light */
-  --bg: #f7f9f8; /* window canvas */
+  --bg: #f7f8fa; /* window canvas */
   --surface: #ffffff; /* panels, popovers */
-  --sidebar: #eef2f0;
-  --hover: #e6ece9;
-  --selected: #dfe7e3;
-  --line: #d9e0dd; /* panel borders, dividers */
-  --line-soft: #e9eeec; /* row separators */
-  --text: #18201d;
-  --text-2: #535f5a; /* secondary text, 6.7:1 on surface */
-  --text-3: #5e6a65; /* tertiary text, 5.0:1 on sidebar */
-  --accent: #0d6a50; /* Palm House green */
-  --accent-hover: #0a5944;
+  --sidebar: #eef0f4;
+  --hover: #e6e9ef;
+  --selected: #dfe3eb;
+  --line: #d9dde5; /* panel borders, dividers */
+  --line-soft: #e9ecf1; /* row separators */
+  --text: #181c24;
+  --text-2: #525a68; /* secondary text, 7.0:1 on surface */
+  --text-3: #5d6573; /* tertiary text, 5.2:1 on sidebar */
+  --accent: #2148c0; /* Cobalt glass */
+  --accent-hover: #1a3ba3;
   --accent-fg: #ffffff;
-  --accent-soft: #e2f0ea;
-  --accent-text: #0b5c46;
+  --accent-soft: #e6ecfb;
+  --accent-text: #1c3fae;
   --danger: #b42318;
   --danger-soft: #fdecea;
-  --scrim: rgb(24 32 29 / 0.28);
-  --shadow-pop: 0 1px 2px rgb(24 32 29 / 0.06), 0 12px 32px -8px rgb(24 32 29 / 0.22);
+  --scrim: rgb(24 28 36 / 0.28);
+  --shadow-pop: 0 1px 2px rgb(24 28 36 / 0.06), 0 12px 32px -8px rgb(24 28 36 / 0.22);
   --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 
   /* Type */
@@ -82,21 +83,21 @@
 /* Colour: dark, shared by the system setting and an explicit data-theme="dark" */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #131816;
-    --surface: #181e1c;
-    --sidebar: #101513;
-    --hover: #212926;
-    --selected: #26302c;
-    --line: #2a3430;
-    --line-soft: #212926;
-    --text: #e4ebe8;
-    --text-2: #a0aca7;
-    --text-3: #909c97;
-    --accent: #58c9a2;
-    --accent-hover: #6fd4b1;
-    --accent-fg: #04251b;
-    --accent-soft: #173229;
-    --accent-text: #7fdcbb;
+    --bg: #13161b;
+    --surface: #181c22;
+    --sidebar: #101318;
+    --hover: #21262e;
+    --selected: #262c36;
+    --line: #2a303a;
+    --line-soft: #21262e;
+    --text: #e4e8ef;
+    --text-2: #a0a8b5;
+    --text-3: #8f98a6;
+    --accent: #7fa2ff;
+    --accent-hover: #9ab6ff;
+    --accent-fg: #0a1a45;
+    --accent-soft: #1b2647;
+    --accent-text: #9db8ff;
     --danger: #ff8f85;
     --danger-soft: #3a1d1a;
     --scrim: rgb(0 0 0 / 0.5);
@@ -104,21 +105,21 @@
   }
 }
 :root[data-theme='dark'] {
-  --bg: #131816;
-  --surface: #181e1c;
-  --sidebar: #101513;
-  --hover: #212926;
-  --selected: #26302c;
-  --line: #2a3430;
-  --line-soft: #212926;
-  --text: #e4ebe8;
-  --text-2: #a0aca7;
-  --text-3: #909c97;
-  --accent: #58c9a2;
-  --accent-hover: #6fd4b1;
-  --accent-fg: #04251b;
-  --accent-soft: #173229;
-  --accent-text: #7fdcbb;
+  --bg: #13161b;
+  --surface: #181c22;
+  --sidebar: #101318;
+  --hover: #21262e;
+  --selected: #262c36;
+  --line: #2a303a;
+  --line-soft: #21262e;
+  --text: #e4e8ef;
+  --text-2: #a0a8b5;
+  --text-3: #8f98a6;
+  --accent: #7fa2ff;
+  --accent-hover: #9ab6ff;
+  --accent-fg: #0a1a45;
+  --accent-soft: #1b2647;
+  --accent-text: #9db8ff;
   --danger: #ff8f85;
   --danger-soft: #3a1d1a;
   --scrim: rgb(0 0 0 / 0.5);

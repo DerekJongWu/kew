@@ -54,7 +54,7 @@ function createWindow(): void {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 15 },
     // Matches --bg in tokens.css so the window never flashes the wrong colour.
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#131816' : '#f7f9f8',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#13161b' : '#f7f8fa',
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
