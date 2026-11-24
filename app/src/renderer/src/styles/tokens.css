@@ -1,0 +1,133 @@
+/*
+ * Kew design tokens.
+ *
+ * Direction: "Glasshouse". Kew is a working desk for a deal pipeline, named for a garden of
+ * glasshouses. The look is a clear pane: cool, near-colourless surfaces, crisp native type,
+ * hairline structure, and dense rows that put names and dates first. Nothing decorates.
+ *
+ * Distinctive choice: one accent, Palm House green — a deep verdigris (#0D6A50 light,
+ * #58C9A2 dark). It is the only colour in the interface and it always means "yours to act on":
+ * the current place, the primary action, keyboard focus and counts of things that are due.
+ * Neutrals are tinted a few degrees toward it so the green reads as native, not applied.
+ *
+ * Type: the macOS system face (SF Pro Text / Display via -apple-system). No webfont is loaded,
+ * so nothing touches the network and type renders with native hinting at small sizes.
+ * Figures are tabular wherever numbers line up.
+ *
+ * All text pairs meet 4.5:1 in both themes (checked; see the Task 14 report).
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Colour: light */
+  --bg: #f7f9f8; /* window canvas */
+  --surface: #ffffff; /* panels, popovers */
+  --sidebar: #eef2f0;
+  --hover: #e6ece9;
+  --selected: #dfe7e3;
+  --line: #d9e0dd; /* panel borders, dividers */
+  --line-soft: #e9eeec; /* row separators */
+  --text: #18201d;
+  --text-2: #535f5a; /* secondary text, 6.7:1 on surface */
+  --text-3: #5e6a65; /* tertiary text, 5.0:1 on sidebar */
+  --accent: #0d6a50; /* Palm House green */
+  --accent-hover: #0a5944;
+  --accent-fg: #ffffff;
+  --accent-soft: #e2f0ea;
+  --accent-text: #0b5c46;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --scrim: rgb(24 32 29 / 0.28);
+  --shadow-pop: 0 1px 2px rgb(24 32 29 / 0.06), 0 12px 32px -8px rgb(24 32 29 / 0.22);
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+
+  /* Type */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  --text-xs: 11px; /* keycaps, meta */
+  --text-sm: 12px; /* secondary lines, counts */
+  --text-md: 13px; /* body, rows, buttons */
+  --text-lg: 15px; /* section titles */
+  --text-xl: 26px; /* screen titles */
+  --leading: 1.38;
+  --weight-medium: 500;
+  --weight-strong: 600;
+  --tracking-display: -0.022em;
+
+  /* Space (4px grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --sidebar-w: 232px;
+  --row-h: 44px;
+  --control-h: 26px;
+
+  /* Radius, by hierarchy: controls are tighter than panels */
+  --r-chip: 4px;
+  --r-control: 6px;
+  --r-panel: 10px;
+  --r-pop: 12px;
+
+  /* Motion: answers an action, never ambient */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 90ms;
+  --t-med: 160ms;
+}
+
+/* Colour: dark, shared by the system setting and an explicit data-theme="dark" */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #131816;
+    --surface: #181e1c;
+    --sidebar: #101513;
+    --hover: #212926;
+    --selected: #26302c;
+    --line: #2a3430;
+    --line-soft: #212926;
+    --text: #e4ebe8;
+    --text-2: #a0aca7;
+    --text-3: #909c97;
+    --accent: #58c9a2;
+    --accent-hover: #6fd4b1;
+    --accent-fg: #04251b;
+    --accent-soft: #173229;
+    --accent-text: #7fdcbb;
+    --danger: #ff8f85;
+    --danger-soft: #3a1d1a;
+    --scrim: rgb(0 0 0 / 0.5);
+    --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.04), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #131816;
+  --surface: #181e1c;
+  --sidebar: #101513;
+  --hover: #212926;
+  --selected: #26302c;
+  --line: #2a3430;
+  --line-soft: #212926;
+  --text: #e4ebe8;
+  --text-2: #a0aca7;
+  --text-3: #909c97;
+  --accent: #58c9a2;
+  --accent-hover: #6fd4b1;
+  --accent-fg: #04251b;
+  --accent-soft: #173229;
+  --accent-text: #7fdcbb;
+  --danger: #ff8f85;
+  --danger-soft: #3a1d1a;
+  --scrim: rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.04), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-med: 0ms;
+  }
+}

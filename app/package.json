@@ -17,12 +17,14 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:mac": "electron-vite build && electron-builder --mac",
     "test": "vitest run",
-    "smoke:preload": "electron-vite build && electron scripts/smoke-preload.mjs"
+    "smoke:preload": "electron-vite build && electron scripts/smoke-preload.mjs",
+    "screenshot": "electron-vite build && electron scripts/screenshot.mjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "chokidar": "^6.0.0",
+    "cmdk": "^1.1.1",
     "isomorphic-git": "^1.44.19",
     "ulid": "^3.0.2",
     "yaml": "^2.9.1",

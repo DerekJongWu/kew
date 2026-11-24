@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -44,9 +44,16 @@ function startWatcher(v: Vault): void {
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1280,
+    height: 800,
+    minWidth: 960,
+    minHeight: 600,
     show: false,
+    title: 'Kew',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 15 },
+    // Matches --bg in tokens.css so the window never flashes the wrong colour.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#131816' : '#f7f9f8',
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
