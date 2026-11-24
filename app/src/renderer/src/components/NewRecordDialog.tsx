@@ -31,9 +31,12 @@ const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([di
  */
 export function NewRecordDialog({
   type,
+  initialName = '',
   onClose
 }: {
   type: RecordType
+  /** Prefills the name, e.g. "Create <name>" from an unresolved [[link]]. */
+  initialName?: string
   onClose(): void
 }): React.JSX.Element {
   const noun = TYPE_LABEL[type].toLowerCase()
@@ -41,8 +44,11 @@ export function NewRecordDialog({
   const box = useRef<HTMLDivElement>(null)
   const [restore] = useState(() => document.activeElement)
   const { data: schema } = useQuery(() => kew.schema(), [])
-  const [form, setForm] = useState<NewRecordForm>(() => emptyForm(isoDate()))
-  const [nameTouched, setNameTouched] = useState(false)
+  const [form, setForm] = useState<NewRecordForm>(() => ({
+    ...emptyForm(isoDate()),
+    name: initialName
+  }))
+  const [nameTouched, setNameTouched] = useState(initialName !== '')
   const [errors, setErrors] = useState<FormErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [dupes, setDupes] = useState<DuplicateHit[] | null>(null)

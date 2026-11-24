@@ -46,6 +46,7 @@
   /* Type */
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace; /* inline code in notes */
   --text-xs: 11px; /* keycaps, meta */
   --text-sm: 12px; /* secondary lines, counts */
   --text-md: 13px; /* body, rows, buttons */

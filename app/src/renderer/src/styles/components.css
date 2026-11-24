@@ -1357,3 +1357,403 @@
 .list-search {
   width: 200px;
 }
+
+/* ---------- Record page ---------- */
+
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.record-head .screen-kicker {
+  margin-bottom: var(--s-1);
+}
+.record-crumb {
+  padding: 0;
+  font-size: var(--text-md);
+  color: var(--text-2);
+}
+.record-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.record-head-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.record-title {
+  width: 100%;
+  margin-left: calc(-1 * var(--s-1));
+  padding: 0 var(--s-1);
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--text);
+}
+.record-title:hover {
+  border-color: var(--line);
+}
+.record-title:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.record-sub {
+  margin-top: var(--s-1);
+  color: var(--text-2);
+}
+.record-head-row .row-actions {
+  padding-top: var(--s-1);
+}
+.record-banner {
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-panel);
+  background: var(--danger-soft);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+.record-banner ul {
+  margin: var(--s-1) 0 0;
+  padding-left: var(--s-4);
+}
+.record-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  gap: var(--s-4);
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .record-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.record-main,
+.record-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.section-hint {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.row-compact {
+  min-height: 36px;
+  flex-wrap: nowrap;
+}
+.row-meta.is-due {
+  color: var(--accent-text);
+}
+
+/* Properties */
+.props {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: var(--s-2) var(--s-4) var(--s-3);
+}
+.props-wide {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  column-gap: var(--s-6);
+}
+.prop {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: var(--s-2);
+  align-items: start;
+  min-height: 32px;
+  padding: 3px 0;
+}
+.prop-label {
+  padding-top: 5px;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.prop-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+.prop-field {
+  width: 100%;
+  border-color: transparent;
+  background: transparent;
+}
+.prop-field:hover {
+  border-color: var(--line);
+}
+.prop-field:focus-visible {
+  background: var(--surface);
+}
+.prop-field::placeholder {
+  color: var(--text-3);
+}
+.prop-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+}
+.prop-inline .prop-field {
+  flex: 1;
+  min-width: 0;
+}
+.prop-open {
+  flex: none;
+  text-decoration: none;
+}
+.prop-check {
+  width: 16px;
+  height: 16px;
+  margin: 5px var(--s-2);
+  accent-color: var(--accent);
+}
+.prop-multi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--control-h);
+}
+.prop-add {
+  width: 120px;
+  border-color: transparent;
+  background: transparent;
+}
+.prop-add:hover {
+  border-color: var(--line);
+}
+.prop-value .relpick-box {
+  border-color: transparent;
+  background: transparent;
+}
+.prop-value .relpick-box:hover {
+  border-color: var(--line);
+}
+.prop-raw {
+  flex: 1;
+  min-width: 0;
+  padding: 4px var(--s-2);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.prop-key {
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+.props-other {
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--s-3);
+}
+.props-other > .props-other-title,
+.props-other > .form-hint {
+  padding: 0 var(--s-4);
+}
+.props-other-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+.props-other .props {
+  padding-top: var(--s-1);
+}
+
+/* Editor */
+.editor-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4) var(--s-3);
+}
+.editor-conflict,
+.editor-missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-control);
+  background: var(--accent-soft);
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+.editor-conflict > span,
+.editor-missing > span {
+  margin-right: auto;
+}
+.editor-missing {
+  margin: 0 var(--s-4) var(--s-3);
+}
+.editor .cm-editor {
+  min-height: 220px;
+  font-size: var(--text-md);
+  color: var(--text);
+  background: transparent;
+}
+.editor .cm-editor.cm-focused {
+  outline: none;
+}
+.editor .cm-scroller {
+  font-family: var(--font);
+  line-height: 1.6;
+}
+.editor .cm-content {
+  padding: var(--s-1) 0 var(--s-5);
+  caret-color: var(--accent);
+}
+.editor .cm-line {
+  padding: 0;
+}
+.editor .cm-cursor {
+  border-left-color: var(--accent);
+}
+.editor .cm-focused .cm-selectionBackground,
+.editor .cm-selectionBackground,
+.editor .cm-content ::selection {
+  background: var(--selected);
+}
+.editor .cm-placeholder {
+  color: var(--text-3);
+}
+.md-h {
+  font-family: var(--font-display);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+}
+.md-h1 {
+  font-size: var(--text-xl);
+  letter-spacing: var(--tracking-display);
+}
+.md-h2 {
+  font-size: var(--text-lg);
+}
+.md-h3 {
+  font-size: var(--text-md);
+}
+.md-strong {
+  font-weight: var(--weight-strong);
+}
+.md-em {
+  font-style: italic;
+}
+.md-link,
+.md-url {
+  color: var(--accent-text);
+}
+.md-code {
+  padding: 0 3px;
+  border-radius: var(--r-chip);
+  background: var(--hover);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.md-list,
+.md-mark,
+.md-quote {
+  color: var(--text-2);
+}
+.md-wikilink {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+.md-wikilink .md-mark,
+.md-wikilink .md-link {
+  color: var(--accent-text);
+}
+.cm-tooltip.cm-tooltip-autocomplete {
+  padding: var(--s-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font);
+}
+.cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 3px var(--s-2);
+  border-radius: var(--r-chip);
+  color: var(--text);
+  font-size: var(--text-md);
+}
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.cm-tooltip-autocomplete .cm-completionDetail {
+  font-style: normal;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+
+/* Timeline, outreach */
+.timeline-item,
+.log-item {
+  gap: var(--s-3);
+  align-items: baseline;
+}
+.timeline-date {
+  flex: 0 0 88px;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.timeline-kind {
+  flex: 0 0 64px;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.timeline-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+button.timeline-text {
+  white-space: normal;
+  font-weight: var(--weight-medium);
+}
+.log-dir {
+  display: flex;
+  flex: 0 0 132px;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+.outreach-card {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+}
+.outreach-card.is-due {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.outreach-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+}
+.outreach-title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+}
+.outreach-card.is-due .outreach-title {
+  color: var(--accent-text);
+}
+.prop-value .relpick-input {
+  flex: 1 1 40px;
+  min-width: 40px;
+}

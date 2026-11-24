@@ -265,6 +265,193 @@ async function lists(win) {
   await sleep(300)
 }
 
+const readAny = (folder, name) => readFileSync(join(vaultDir, folder, name + '.md'), 'utf8')
+const writeAny = (folder, name, text) => writeFileSync(join(vaultDir, folder, name + '.md'), text)
+const historyTop = async (win, n = 1) => (await js(win, `window.kew.history(${n})`)).value
+const undoTop = async (win) => {
+  const [h] = await historyTop(win)
+  const res = await js(win, `window.kew.undo(${JSON.stringify(h.id)})`)
+  await sleep(800)
+  return { message: h.message, ok: !res.error }
+}
+/** Open a record with ⌘K: type its name, Return opens the top hit. */
+async function openRecord(win, name) {
+  key(win, 'K', ['meta'])
+  await waitFor(win, '.cmdk-input')
+  win.webContents.insertText(name)
+  await sleep(600)
+  // Click the hit with exactly this name (the top hit can be a meeting named after it).
+  const ok = await js(win, `(() => { const l = [...document.querySelectorAll('.cmdk [cmdk-item] .cmdk-label')].find((e) => e.textContent === ${JSON.stringify(name)}); if (!l) return false; l.closest('[cmdk-item]').click(); return true })()`)
+  if (!ok) throw new Error(`No ⌘K hit named ${name}`)
+  await waitFor(win, '.record .props')
+  await sleep(400)
+}
+/** Set a native <select>/<input> value inside the property row labelled `label` the way a user would. */
+const setProp = (win, label, value, event = 'change') =>
+  js(win, `(() => {
+    const row = [...document.querySelectorAll('.prop')].find((r) => r.querySelector('.prop-label')?.textContent === ${JSON.stringify(label)})
+    const el = row.querySelector('select, input')
+    const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(value)})
+    el.dispatchEvent(new Event(${JSON.stringify(event)}, { bubbles: true }))
+    return true
+  })()`)
+const editorText = (win) => js(win, `document.querySelector('.cm-content').innerText`)
+
+async function records(win) {
+  // Company page.
+  await openRecord(win, 'Pinemoth Analytics')
+  await waitFor(win, '.cm-content')
+  await shot(win, 'record-company-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'record-company-dark.png')
+  nativeTheme.themeSource = 'light'
+  const co = () => readAny('Companies', 'Pinemoth Analytics')
+  const original = co()
+
+  // Select field: Stage → Seed. File changes, history has it, undo restores.
+  await setProp(win, 'Stage', 'seed')
+  await sleep(800)
+  log('select: stage written:', /^stage: seed$/m.test(co()), '| history:', (await historyTop(win))[0].message)
+  const u1 = await undoTop(win)
+  log('select: undo', u1.message, 'restored:', co() === original)
+
+  // Relation field: Referred by → Nadia Ferreira.
+  await js(win, `[...document.querySelectorAll('.relpick-input')].find((i) => i.labels[0].textContent === 'Referred by').focus()`)
+  win.webContents.insertText('Nadia')
+  await waitFor(win, '.relpick-opt')
+  await sleep(400)
+  key(win, 'Return')
+  await sleep(900)
+  log('relation: referred_by written:', /^referred_by: .*\[\[Nadia Ferreira\]\]/m.test(co()), '| history:', (await historyTop(win))[0].message)
+  const u2 = await undoTop(win)
+  log('relation: undo', u2.message, 'restored:', co() === original)
+
+  // Date field: Reach out on.
+  await setProp(win, 'Reach out on', '2026-12-03', 'input')
+  await sleep(900)
+  log('date: reach_out_on written:', /^reach_out_on: 2026-12-03$/m.test(co()), '| history:', (await historyTop(win))[0].message)
+  const u3 = await undoTop(win)
+  log('date: undo', u3.message, 'restored:', co() === original)
+
+  // Add a custom property.
+  await clickText(win, '.section-head button', 'Add a property')
+  await waitFor(win, '[role="dialog"][aria-modal="true"] input')
+  win.webContents.insertText('Board seat')
+  await js(win, `(() => { const s = document.querySelector('[role=dialog] select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'checkbox'); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await sleep(300)
+  await shot(win, 'record-addproperty-light.png')
+  await clickText(win, '[role=dialog] button', 'Add property')
+  await sleep(1000)
+  const schemaYaml = readFileSync(join(vaultDir, '.kew/schema.yaml'), 'utf8')
+  log('add property: schema has board_seat:', /key: board_seat/.test(schemaYaml), '| panel shows it:', await js(win, `[...document.querySelectorAll('.prop-label')].some((l) => l.textContent === 'Board seat')`))
+  await js(win, `[...document.querySelectorAll('.prop')].find((r) => r.querySelector('.prop-label')?.textContent === 'Board seat').querySelector('input').click()`)
+  await sleep(800)
+  log('add property: checkbox saved:', /^board_seat: true$/m.test(co()))
+
+  // Editor: type, autosave after a pause, undo in the editor, undo in history.
+  key(win, 'E', ['meta'])
+  await sleep(200)
+  log('cmd+E focuses editor:', await js(win, `document.activeElement.classList.contains('cm-content')`))
+  const beforeEdit = co()
+  win.webContents.insertText('Kew harness line. ')
+  await sleep(300)
+  log('autosave not yet (300 ms):', co() === beforeEdit)
+  await sleep(1200)
+  log('autosave after pause:', co().includes('Kew harness line.'), '| history:', (await historyTop(win))[0].message)
+  win.webContents.send('kew:menu-undo') // Edit > Undo (⌘Z) while the editor has focus
+  await sleep(1400)
+  log('menu undo in editor removed text and saved:', !(await editorText(win)).includes('Kew harness line.'), !co().includes('Kew harness line.'))
+  key(win, 'Z', ['meta', 'shift']) // CodeMirror's redo key, sent straight to the page
+  await sleep(1400)
+  log('redo saved again:', co().includes('Kew harness line.'))
+  key(win, 'Escape')
+  await sleep(300)
+  log('Escape blurs editor:', !(await js(win, `document.activeElement.classList.contains('cm-content')`)))
+  const u4 = await undoTop(win)
+  log('history undo of body edit:', u4.message, 'file back to before redo:', !co().includes('Kew harness line.'))
+  await sleep(800)
+  log('editor reloaded after history undo:', !(await editorText(win)).includes('Kew harness line.'))
+
+  // [[ autocomplete inserts a link.
+  key(win, 'E', ['meta'])
+  await sleep(200)
+  win.webContents.insertText('See [[Orch')
+  await waitFor(win, '.cm-tooltip-autocomplete li')
+  await sleep(300)
+  log('autocomplete options:', await js(win, `[...document.querySelectorAll('.cm-tooltip-autocomplete li')].map((l) => l.textContent).join(' / ')`))
+  key(win, 'Return')
+  await sleep(1500)
+  log('autocomplete inserted link:', co().includes('See [[Orchard Signal]]'))
+  key(win, 'Escape')
+
+  // Rename a linked record: every link to it is rewritten.
+  await openRecord(win, 'Orchard Signal')
+  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, 'Orchard Signal Works'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await sleep(200)
+  key(win, 'Return')
+  await sleep(1500)
+  log('rename: file moved:', notesIn('Companies').includes('Orchard Signal Works.md'), !notesIn('Companies').includes('Orchard Signal.md'))
+  log('rename: person link updated:', /\[\[Orchard Signal Works\]\]/.test(readAny('People', 'Callum Reyes')))
+  log('rename: Pinemoth body link updated:', co().includes('[[Orchard Signal Works]]'))
+  log('rename: title shows:', await js(win, `document.querySelector('.record-title').value`), '| history:', (await historyTop(win))[0].message)
+  // Name rule shown inline.
+  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, 'Bad/Name'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await sleep(200)
+  key(win, 'Return')
+  await sleep(300)
+  log('rename: bad name error:', await js(win, `document.querySelector('#record-title-err')?.textContent`))
+  key(win, 'Escape')
+
+  // Theme page lists its companies.
+  await openRecord(win, 'Clinical Back Office')
+  log('theme companies:', await js(win, `[...document.querySelectorAll('.section')].find((s) => s.querySelector('.section-title').textContent.startsWith('Companies'))?.querySelectorAll('.row').length`))
+
+  // Person page.
+  await openRecord(win, 'Mara Quintero')
+  await waitFor(win, '.outreach-card')
+  await shot(win, 'record-person-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'record-person-dark.png')
+  nativeTheme.themeSource = 'light'
+  const pe = () => readAny('People', 'Mara Quintero')
+  await clickText(win, '.outreach-card button', 'Log send')
+  await waitFor(win, '.outreach-card .inline-form input')
+  win.webContents.insertText('Harness follow-up note')
+  await sleep(200)
+  key(win, 'Return')
+  await sleep(1200)
+  log('log send: file has line:', /- \d{4}-\d{2}-\d{2}, out · \w+: Harness follow-up note/.test(pe()), '| history:', (await historyTop(win))[0].message)
+  log('log send: log list shows it:', await js(win, `document.querySelector('.log-item .timeline-text')?.textContent`))
+  log('log send: editor shows appended log line:', (await editorText(win)).includes('Harness follow-up note'))
+
+  // Outside edit with no local edits: the editor reloads.
+  writeAny('People', 'Mara Quintero', pe() + '\nAdded in another editor.\n')
+  await sleep(2000)
+  log('outside edit, no local edits → reloaded:', (await editorText(win)).includes('Added in another editor.'), '| conflict bar:', await js(win, `!!document.querySelector('.editor-conflict')`))
+
+  // Outside edit with local edits: the conflict bar, then Keep mine keeps both in history.
+  key(win, 'E', ['meta'])
+  await sleep(200)
+  win.webContents.insertText('Local words. ')
+  writeAny('People', 'Mara Quintero', pe() + '\nSecond outside edit.\n')
+  for (let i = 0; i < 8; i++) {
+    await sleep(300)
+    win.webContents.insertText('.') // keep typing so autosave waits
+  }
+  await sleep(300)
+  log('conflict bar shown:', await js(win, `!!document.querySelector('.editor-conflict')`))
+  await shot(win, 'record-conflict-light.png')
+  await clickText(win, '.editor-conflict button', 'Keep mine')
+  await sleep(1500)
+  log('keep mine: file has local words:', pe().includes('Local words.'), '| outside edit gone from file:', !pe().includes('Second outside edit.'))
+  const hist = await historyTop(win, 4)
+  log('keep mine: history:', hist.map((h) => `${h.kind}:${h.message}`).join(' | '))
+  const ext = hist.find((h) => h.kind === 'external')
+  log('keep mine: outside version committed to history:', !!ext && ext.files.some((f) => f.includes('Mara Quintero')))
+  key(win, 'Escape')
+}
+
 async function main() {
   await app.whenReady()
   mkdirSync(outDir, { recursive: true })
@@ -310,6 +497,7 @@ async function main() {
 
   await pipeline(win)
   await lists(win)
+  await records(win)
 
   key(win, 'K', ['meta'])
   await waitFor(win, '.cmdk-input')

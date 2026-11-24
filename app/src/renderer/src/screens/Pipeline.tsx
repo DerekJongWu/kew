@@ -17,7 +17,7 @@ import { DataTable } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
 import { FilterBar, type FilterOption } from '../components/FilterBar'
 import { createViewsStore } from '../lib/views-store'
-import { PassForm } from '../components/RowActions'
+import { PassDialog } from '../components/PassDialog'
 import { ViewTabs } from '../components/ViewTabs'
 
 const openRecord = (id: string): void => router.navigate({ name: 'record', id })
@@ -212,24 +212,15 @@ export function Pipeline(): React.JSX.Element {
         </>
       )}
       {passing && (
-        <div className="scrim" role="presentation">
-          <div
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Pass on ${passing.name}`}
-          >
-            <p className="dialog-title">Pass on {passing.name}</p>
-            <PassForm
-              onSubmit={(reason) => {
-                const rec = passing
-                setPassing(null)
-                run(rec.id, () => kew.passCompany(rec.id, reason))
-              }}
-              onCancel={() => setPassing(null)}
-            />
-          </div>
-        </div>
+        <PassDialog
+          name={passing.name}
+          onSubmit={(reason) => {
+            const rec = passing
+            setPassing(null)
+            run(rec.id, () => kew.passCompany(rec.id, reason))
+          }}
+          onCancel={() => setPassing(null)}
+        />
       )}
     </div>
   )

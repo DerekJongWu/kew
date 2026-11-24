@@ -28,7 +28,8 @@ export function RelationPicker({
   value,
   onChange,
   error,
-  hint
+  hint,
+  labelHidden = false
 }: {
   label: string
   target: RecordType | 'any'
@@ -37,6 +38,8 @@ export function RelationPicker({
   onChange(next: string[]): void
   error?: string
   hint?: string
+  /** Hide the label visually (it stays for screen readers), e.g. in a properties grid. */
+  labelHidden?: boolean
 }): React.JSX.Element {
   const id = useId()
   const listId = `${id}-list`
@@ -100,7 +103,7 @@ export function RelationPicker({
 
   return (
     <div className="relpick">
-      <label className="form-label" htmlFor={id}>
+      <label className={labelHidden ? 'visually-hidden' : 'form-label'} htmlFor={id}>
         {label}
       </label>
       <div className={`relpick-box${error ? ' field-invalid' : ''}`}>

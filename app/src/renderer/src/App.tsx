@@ -3,6 +3,7 @@ import { kew, useQuery } from './api'
 import { router, useRoute } from './router'
 import { latestUndoable, plainError, status } from './lib/actions'
 import { isEditable } from './lib/editable'
+import { undoInEditor } from './lib/note-editor'
 import { Button } from './components/Button'
 import { DESTINATIONS, SETTINGS } from './lib/destinations'
 import { Sidebar } from './components/Sidebar'
@@ -11,6 +12,7 @@ import { Icon } from './components/Icon'
 import { Today } from './screens/Today'
 import { Pipeline } from './screens/Pipeline'
 import { RecordList } from './screens/RecordList'
+import { RecordPage } from './screens/RecordPage'
 import { NewRecordDialog } from './components/NewRecordDialog'
 import type { RecordType } from '../../shared/api'
 import { Placeholder } from './screens/Placeholder'
@@ -54,6 +56,7 @@ function App(): React.JSX.Element {
   useEffect(
     () =>
       kew.onMenuUndo(() => {
+        if (undoInEditor(document.activeElement)) return
         if (isEditable(document.activeElement as HTMLElement | null)) document.execCommand('undo')
         else void undoLast()
       }),
@@ -121,6 +124,8 @@ function App(): React.JSX.Element {
             <Pipeline />
           ) : route.name === 'list' ? (
             <RecordList key={route.type} type={route.type} />
+          ) : route.name === 'record' ? (
+            <RecordPage key={route.id} id={route.id} />
           ) : (
             <Placeholder key={JSON.stringify(route)} route={route} />
           )}
