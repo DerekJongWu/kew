@@ -2,7 +2,8 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { registerIpc, reopenLast } from './ipc'
+import { closeCurrentVault, registerIpc, reopenLast } from './ipc'
+import { createChangeHandler } from './changes'
 import { watchVault, type VaultWatcher } from './watcher'
 import { CHANGED_CHANNEL } from '../shared/methods'
 import type { Vault } from '../core/vault'
@@ -25,16 +26,19 @@ function broadcast(ids: string[]): void {
   for (const w of BrowserWindow.getAllWindows()) w.webContents.send(CHANGED_CHANNEL, ids)
 }
 
+function setVault(v: Vault | null): void {
+  vault = v
+}
+
+function stopWatcher(): void {
+  void watcher?.close()
+  watcher = null
+}
+
+const onChange = createChangeHandler(() => vault, broadcast)
+
 function startWatcher(v: Vault): void {
-  watcher = watchVault(v.root, (paths) => {
-    v.onExternalChange(paths).then(
-      (ids) => {
-        // Schema edits can change schemaError without changing any record, so always notify then.
-        if (ids.length > 0 || paths.includes('.kew/schema.yaml')) broadcast(ids)
-      },
-      (e) => console.error('External change failed', e)
-    )
-  })
+  watcher = watchVault(v.root, (paths) => void onChange(v, paths))
 }
 
 function createWindow(): void {
@@ -85,29 +89,19 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const handlers = registerIpc(
-    ipcMain,
-    () => vault,
-    (v) => {
-      vault = v
+  const handlers = registerIpc(ipcMain, () => vault, setVault, {
+    userData: app.getPath('userData'),
+    home: app.getPath('home'),
+    today,
+    chooseFolder: async () => {
+      const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
+      return r.canceled ? null : (r.filePaths[0] ?? null)
     },
-    {
-      userData: app.getPath('userData'),
-      home: app.getPath('home'),
-      today,
-      chooseFolder: async () => {
-        const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
-        return r.canceled ? null : (r.filePaths[0] ?? null)
-      },
-      showInFolder: (p) => shell.showItemInFolder(p),
-      onVaultOpened: startWatcher,
-      onVaultClosed: () => {
-        void watcher?.close()
-        watcher = null
-      },
-      markOwnWrite: (files) => watcher?.markOwnWrite(files)
-    }
-  )
+    showInFolder: (p) => shell.showItemInFolder(p),
+    onVaultOpened: startWatcher,
+    onVaultClosed: stopWatcher,
+    markOwnWrite: (files) => watcher?.markOwnWrite(files)
+  })
   void reopenLast(handlers, app.getPath('userData')).finally(createWindow)
 
   app.on('activate', function () {
@@ -128,3 +122,6 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+// Quit: stop the watcher (clears its debounce timer) and close the SQLite handle.
+app.on('will-quit', () => closeCurrentVault(() => vault, setVault, { onVaultClosed: stopWatcher }))

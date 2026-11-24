@@ -39,6 +39,19 @@ async function isNonEmpty(dir: string): Promise<boolean> {
   }
 }
 
+/** Stops the watcher and closes the open vault (if any). Used on switch and on app quit. */
+export function closeCurrentVault(
+  getVault: () => Vault | null,
+  setVault: (v: Vault | null) => void,
+  deps: Pick<Deps, 'onVaultClosed'>
+): void {
+  const v = getVault()
+  if (!v) return
+  deps.onVaultClosed()
+  v.close()
+  setVault(null)
+}
+
 export function buildHandlers(
   getVault: () => Vault | null,
   setVault: (v: Vault | null) => void,
@@ -49,18 +62,17 @@ export function buildHandlers(
     if (!v) throw named('NoVaultError', 'No vault is open')
     return v
   }
-  const closeCurrent = (): void => {
-    const v = getVault()
-    if (!v) return
-    deps.onVaultClosed()
-    v.close()
-    setVault(null)
-  }
   const open = async (root: string): Promise<VaultInfo> => {
-    closeCurrent()
+    // Open the new vault first: if it fails, the current vault stays open and usable.
     const v = await Vault.open(root, vaultDataDir(deps.userData, root), { today: deps.today })
-    // Pick up hand edits made while the app was closed.
-    await v.rebuildIndex()
+    try {
+      // Pick up hand edits made while the app was closed.
+      await v.rebuildIndex()
+    } catch (e) {
+      v.close()
+      throw e
+    }
+    closeCurrentVault(getVault, setVault, deps)
     setVault(v)
     rememberVault(deps.userData, root)
     deps.onVaultOpened(v)

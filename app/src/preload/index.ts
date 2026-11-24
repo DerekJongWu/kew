@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 import { KEW_METHODS, CHANGED_CHANNEL, type Envelope } from '../shared/methods'
 import type { KewApi } from '../shared/api'
 
@@ -26,14 +25,11 @@ for (const m of KEW_METHODS) {
 
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('kew', kew)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
   // @ts-ignore (define in dts)
   window.kew = kew
 }

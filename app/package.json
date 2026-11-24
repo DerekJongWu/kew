@@ -16,7 +16,8 @@
     "postinstall": "install-electron && electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "test": "vitest run"
+    "test": "vitest run",
+    "smoke:preload": "electron-vite build && electron scripts/smoke-preload.mjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

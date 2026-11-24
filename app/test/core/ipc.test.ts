@@ -2,7 +2,15 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fsp } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { buildHandlers, registerIpc, serializeError, type Deps, type Handlers } from '../../src/main/ipc'
+import { createChangeHandler } from '../../src/main/changes'
+import {
+  closeCurrentVault,
+  buildHandlers,
+  registerIpc,
+  serializeError,
+  type Deps,
+  type Handlers
+} from '../../src/main/ipc'
 import { loadSettings, rememberVault } from '../../src/main/settings'
 import { isRelevant, watchVault } from '../../src/main/watcher'
 import { KEW_METHODS, type InvokeMethod } from '../../src/shared/methods'
@@ -153,6 +161,90 @@ describe('integration through handlers', () => {
   })
 })
 
+describe('vault switching', () => {
+  it('a failed openVault keeps the previous vault open and usable', async () => {
+    const h = make()
+    await h.createVault('sample', join(tmp, 's'))
+    const bad = join(tmp, 'file.txt')
+    await fsp.writeFile(bad, 'not a folder')
+    await expect(h.openVault(join(bad, 'sub'))).rejects.toBeDefined()
+    expect(current).not.toBeNull()
+    expect(events).toEqual(['open:' + join(tmp, 's')])
+    expect((await h.list('person')).length).toBeGreaterThan(0)
+  })
+  it('closeCurrentVault closes the vault and notifies once', async () => {
+    const h = make()
+    await h.createVault('empty', join(tmp, 'e'))
+    closeCurrentVault(
+      () => current,
+      (v) => {
+        current = v
+      },
+      deps
+    )
+    closeCurrentVault(
+      () => current,
+      (v) => {
+        current = v
+      },
+      deps
+    )
+    expect(current).toBeNull()
+    expect(events).toEqual(['open:' + join(tmp, 'e'), 'close'])
+  })
+})
+
+describe('change handler', () => {
+  const fake = (ids: string[]): Vault => ({ onExternalChange: async () => ids }) as unknown as Vault
+  it('broadcasts ids, and schema edits even with no ids', async () => {
+    const v = fake(['a']),
+      v2 = fake([]),
+      out: string[][] = []
+    await createChangeHandler(
+      () => v,
+      (i) => out.push(i)
+    )(v, ['Companies/A.md'])
+    await createChangeHandler(
+      () => v2,
+      (i) => out.push(i)
+    )(v2, ['.kew/schema.yaml'])
+    expect(out).toEqual([['a'], []])
+  })
+  it('stays silent when nothing changed, or when the vault was switched meanwhile', async () => {
+    const old = fake(['a']),
+      out: string[][] = []
+    const quiet = fake([]),
+      other = fake([])
+    await createChangeHandler(
+      () => quiet,
+      (i) => out.push(i)
+    )(quiet, ['x.md'])
+    await createChangeHandler(
+      () => null,
+      (i) => out.push(i)
+    )(old, ['x.md'])
+    await createChangeHandler(
+      () => other,
+      (i) => out.push(i)
+    )(old, ['.kew/schema.yaml'])
+    expect(out).toEqual([])
+  })
+  it('reports errors instead of throwing', async () => {
+    const bad = {
+      onExternalChange: async () => {
+        throw new Error('boom')
+      }
+    } as unknown as Vault
+    const errs: unknown[] = []
+    await createChangeHandler(
+      () => bad,
+      () => {},
+      (e) => errs.push(e)
+    )(bad, ['x.md'])
+    expect(errs).toHaveLength(1)
+  })
+})
+
 describe('settings', () => {
   it('keeps recent de-duplicated, most recent first, capped at 5', () => {
     for (const r of ['/1', '/2', '/3', '/4', '/5', '/6', '/3']) rememberVault(deps.userData, r)
@@ -176,6 +268,23 @@ describe('watcher', () => {
     expect(isRelevant('Companies/.Acme.md.kew-tmp-123')).toBe(false)
     expect(isRelevant('Companies/.hidden.md')).toBe(false)
     expect(isRelevant('Companies/logo.png')).toBe(false)
+  })
+
+  it("suppresses the app's own views.yaml writes but not external ones", async () => {
+    const root = join(tmp, 'o')
+    await fsp.mkdir(join(root, '.kew'), { recursive: true })
+    const seen: string[][] = []
+    const w = watchVault(root, (p) => seen.push(p))
+    await new Promise((r) => setTimeout(r, 300))
+    w.markOwnWrite(['.kew/views.yaml', 'Companies/A.md'])
+    await fsp.writeFile(join(root, '.kew', 'views.yaml'), 'v')
+    await new Promise((r) => setTimeout(r, 1000))
+    expect(seen).toEqual([])
+    await new Promise((r) => setTimeout(r, 300))
+    await fsp.writeFile(join(root, '.kew', 'views.yaml'), 'v2')
+    await new Promise((r) => setTimeout(r, 1000))
+    await w.close()
+    expect(seen.flat()).toEqual(['.kew/views.yaml'])
   })
 
   it('reports debounced external edits only', async () => {
