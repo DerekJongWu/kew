@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kew — Browser button</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#1c1917;background:#fff}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+.btn{font:inherit;font-size:13px;padding:6px 12px;border:1px solid #d6d3d1;background:#fff;border-radius:6px;color:#1c1917;cursor:pointer;min-height:36px}
+.btn.primary{background:#1c1917;color:#fff;border-color:#1c1917}
+.muted{color:#57534e;font-size:13px}
+label{display:block;font-size:12px;color:#57534e;margin-bottom:4px}
+input,select{width:100%;box-sizing:border-box;font:inherit;font-size:14px;padding:8px 10px;border:1px solid #d6d3d1;border-radius:6px;background:#fff;min-height:36px}
+.seg{font:inherit;font-size:13px;flex:1;padding:8px;border:1px solid #d6d3d1;background:#fff;cursor:pointer;min-height:36px;color:#1c1917}
+.seg.on{background:#1c1917;color:#fff;border-color:#1c1917}
+</style>
+</helmet>
+<div style="width: 380px; height: 600px; box-sizing: border-box; border: 1px solid #d6d3d1; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e7e5e4;">
+    <strong>Kew</strong>
+    <span class="muted" style="font-size: 12px;">LinkedIn profile detected</span>
+  </div>
+
+  <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; flex: 1;">
+    <div style="border: 1px solid #d6d3d1; background: #fafaf9; border-radius: 8px; padding: 10px 12px; font-size: 13px;">
+      <div style="font-weight: 600;">Did you mean Ana Ruiz?</div>
+      <div class="muted">Already in People · not met · Quill Security</div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="btn primary">Use existing</button>
+        <button class="btn">Create new</button>
+      </div>
+    </div>
+
+    <div style="display: flex; border-radius: 6px; overflow: hidden;">
+      <button class="seg on">Log a send</button>
+      <button class="seg">Log a reply</button>
+      <button class="seg">Draft</button>
+    </div>
+
+    <div>
+      <label for="ch">Channel</label>
+      <select id="ch"><option>LinkedIn</option><option>Email</option></select>
+    </div>
+    <div>
+      <label for="msg">What you sent</label>
+      <input id="msg" value="Following up on round timing">
+    </div>
+    <div>
+      <label for="next">Next follow-up</label>
+      <input id="next" value="In 14 days (8 Dec)">
+    </div>
+    <div class="muted" style="font-size: 12px;">Adds a line to Ana's outreach log and moves Quill Security to “Reached out”.</div>
+  </div>
+
+  <div style="padding: 12px 16px; border-top: 1px solid #e7e5e4; display: flex; gap: 8px;">
+    <button class="btn primary" style="flex: 1;">Log send</button>
+    <button class="btn">Open in Kew</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":380,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

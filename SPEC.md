@@ -18,6 +18,8 @@ Kew puts that whole loop in one app. It is opinionated: it ships with a VC workf
 
 The v1 user is one investor working alone in their own vault, on one desktop. No mobile app, no multi-device sync and no cloud backup in v1: nothing leaves the machine except calls to Claude. Team features come after the single-player product is good enough that people use it every day.
 
+Wireframes: [`design/wireframes/`](design/wireframes/README.md), live on the [design canvas](https://claude.ai/artifact/6tkZR7eAVQicvsRxGwEESW).
+
 ## Product principles
 
 1. **You own the data.** Everything is plain markdown files in a folder on the user's machine. Kew stores nothing in the cloud; backup is the user's own (Time Machine, or a synced folder). No lock-in: Obsidian, any editor, or Claude can read the same files.

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kew — Person record</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#1c1917;background:#fff}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;color:#1c1917;text-decoration:none;font-size:14px;min-height:20px}
+.nav:hover{background:#e7e5e4;color:#1c1917}
+.nav.on{background:#e7e5e4;font-weight:600}
+.count{font-size:12px;color:#57534e}
+.btn{font:inherit;font-size:13px;padding:6px 12px;border:1px solid #d6d3d1;background:#fff;border-radius:6px;color:#1c1917;cursor:pointer;min-height:32px}
+.btn.primary{background:#1c1917;color:#fff;border-color:#1c1917}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:#f5f5f4;border:1px solid #e7e5e4;color:#44403c}
+.muted{color:#57534e;font-size:13px}
+.prop{display:grid;grid-template-columns:130px minmax(0,1fr);gap:8px;padding:6px 0;font-size:14px}
+.plabel{color:#57534e;font-size:13px}
+.box{border:1px solid #e7e5e4;border-radius:10px;padding:16px}
+.log{display:grid;grid-template-columns:72px 92px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f4;font-size:14px}
+h2{font-size:16px;margin:0 0 12px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 800px; width: 100%;">
+  <nav style="flex: 1 1 200px; max-width: 240px; background: #f5f5f4; border-right: 1px solid #e7e5e4; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;">
+    <div style="font-weight: 700; font-size: 18px; padding: 4px 10px 12px;">Kew</div>
+    <button class="btn" style="text-align: left; color: #57534e; margin-bottom: 12px;">Search or jump…  ⌘K</button>
+    <a class="nav" href="Main.dc.html">Today <span class="count">9</span></a>
+    <a class="nav" href="Pipeline.dc.html">Pipeline <span class="count">14</span></a>
+    <a class="nav" href="Company.dc.html">Companies</a>
+    <a class="nav on" href="Person.dc.html">People</a>
+    <a class="nav" href="Person.dc.html">Meetings</a>
+    <a class="nav" href="Person.dc.html">Themes</a>
+    <a class="nav" href="Person.dc.html">Research</a>
+    <div style="flex: 1;"></div>
+    <a class="nav" href="Fields.dc.html">Settings</a>
+    <div class="muted" style="padding: 8px 10px; font-size: 12px;">All changes saved on this Mac</div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+    <div>
+      <div class="muted">People / Ana Ruiz</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 8px;">
+        <div>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <h1 style="margin: 0; font-size: 28px;">Ana Ruiz</h1>
+            <span class="chip">Not met</span>
+            <span class="chip">Founder</span>
+          </div>
+          <div class="muted" style="font-size: 15px; margin-top: 4px;">CEO at <a href="Company.dc.html">Quill Security</a> · LinkedIn · ana@quill.example</div>
+        </div>
+        <button class="btn">We met ✓</button>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+      <div style="flex: 3 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+        <section class="box" style="background: #fafaf9;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div>
+              <div style="font-weight: 600; font-size: 15px;">You owe Ana a reply</div>
+              <div class="muted">She replied by email today. Next nudge would be 5 Dec (every 14 days).</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn primary">Draft reply</button>
+              <button class="btn">Log send</button>
+              <button class="btn">Log reply</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2>Outreach log</h2>
+          <sc-for list="{{log}}" as="l" hint-placeholder-count="4">
+            <div class="log"><span class="muted">{{l.d}}</span><span class="chip" style="justify-self: start;">{{l.dir}}</span><span>{{l.t}}</span></div>
+          </sc-for>
+          <div class="muted" style="margin-top: 10px; font-size: 12px;">Append only. Every change can be undone from History.</div>
+        </section>
+
+        <section class="box">
+          <h2>Notes</h2>
+          <p class="muted" style="margin: 0;">[Free-form markdown about Ana. Links like [[Quill Security]] show up as backlinks there.]</p>
+        </section>
+      </div>
+
+      <aside style="flex: 2 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+        <section class="box">
+          <h2>Properties</h2>
+          <sc-for list="{{props}}" as="p" hint-placeholder-count="6">
+            <div class="prop"><span class="plabel">{{p.k}}</span><span>{{p.v}}</span></div>
+          </sc-for>
+          <button class="btn" style="border: none; padding: 6px 0; color: #57534e;">+ Add a property</button>
+        </section>
+        <section class="box">
+          <h2>Mentioned in</h2>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+            <a href="Company.dc.html">Quill Security</a>
+            <span>Screen: Quill Security (14 Nov)</span>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      log: [
+        { d: '24 Nov', dir: 'in · email', t: 'Shared round details, asked for a call next week' },
+        { d: '21 Nov', dir: 'out · linkedin', t: 'Intro note: Sam Okafor suggested we talk' },
+        { d: '12 Nov', dir: 'note', t: 'Added from an intro by Sam Okafor' }
+      ],
+      props: [
+        { k: 'Met', v: 'No' },
+        { k: 'Category', v: 'Founder' },
+        { k: 'Channel', v: 'Email' },
+        { k: 'Cadence', v: 'Every 14 days' },
+        { k: 'Last outbound', v: '21 Nov' },
+        { k: 'Last inbound', v: '24 Nov' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
