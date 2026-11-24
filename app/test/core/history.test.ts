@@ -3,7 +3,7 @@ import { promises as fsp } from 'node:fs'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
-import { History, UndoConflictError } from '../../src/core/history'
+import { History, UndoConflictError, NotUndoableError } from '../../src/core/history'
 
 let tmp: string, vault: string, gitdir: string
 
@@ -140,5 +140,48 @@ describe('History', () => {
     const e = await h.commitAction(['Companies/Acme.md'], 'Edited Acme')
     expect(e.files).toEqual(['Companies/Acme.md'])
     expect(await h.list(1)).toHaveLength(1)
+  })
+
+  it('refuses to undo the Initial state and external entries', async () => {
+    const h = await History.open(gitdir, vault)
+    const initial = (await h.list(10))[0]
+    await expect(h.undo(initial.id)).rejects.toBeInstanceOf(NotUndoableError)
+    await write('Companies/Acme.md', 'hand\n')
+    const ext = await h.commitExternal(['Companies/Acme.md'])
+    await expect(h.undo(ext!.id)).rejects.toBeInstanceOf(NotUndoableError)
+    expect(await read('Companies/Acme.md')).toBe('hand\n')
+  })
+
+  it('an entry with no files is not undoable and undo throws', async () => {
+    const h = await History.open(gitdir, vault)
+    const e = await h.commitAction(['Companies/Acme.md'], 'No-op')
+    expect(e.files).toEqual([])
+    expect(e.undoable).toBe(false)
+    await expect(h.undo(e.id)).rejects.toBeInstanceOf(NotUndoableError)
+  })
+
+  it('a later action on the same file blocks undo of the earlier one', async () => {
+    const h = await History.open(gitdir, vault)
+    await write('Companies/Acme.md', 'two\n')
+    const first = await h.commitAction(['Companies/Acme.md'], 'First')
+    await write('Companies/Acme.md', 'three\n')
+    await h.commitAction(['Companies/Acme.md'], 'Second')
+    const list = await h.list(10)
+    expect(list.map((x) => x.undoable)).toEqual([true, false, false])
+    await expect(h.undo(first.id)).rejects.toBeInstanceOf(UndoConflictError)
+  })
+
+  it('undoes a rename: old file restored, new file deleted', async () => {
+    const h = await History.open(gitdir, vault)
+    await fsp.rename(join(vault, 'Companies/Acme.md'), join(vault, 'Companies/Acme2.md'))
+    const e = await h.commitAction(['Companies/Acme.md', 'Companies/Acme2.md'], 'Renamed')
+    const u = await h.undo(e.id)
+    expect(u.restores).toEqual([
+      { path: 'Companies/Acme.md', content: 'one\n' },
+      { path: 'Companies/Acme2.md', content: null }
+    ])
+    await apply(u.restores)
+    expect(await read('Companies/Acme.md')).toBe('one\n')
+    expect(existsSync(join(vault, 'Companies/Acme2.md'))).toBe(false)
   })
 })

@@ -13,6 +13,13 @@ export class UndoConflictError extends Error {
   }
 }
 
+export class NotUndoableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NotUndoableError'
+  }
+}
+
 const AUTHOR = { name: 'Kew', email: 'kew@localhost' }
 const TRAILER = /\n\nKew-Kind: (action|external|undo)\s*$/
 
@@ -91,7 +98,9 @@ export class History {
   }
 
   async undo(entryId: string): Promise<{ message: string; restores: UndoRestore[] }> {
-    const { message, files, parent } = await this.describe(entryId)
+    const { message, files, parent, kind } = await this.describe(entryId)
+    if (kind === 'external') throw new NotUndoableError("Can't undo: this entry records edits made outside Kew.")
+    if (files.length === 0) throw new NotUndoableError("Can't undo: this entry changed no files.")
     const restores: UndoRestore[] = []
     for (const path of files) {
       if (!same(await readCurrent(this.root, path), await this.blobAt(entryId, path))) throw new UndoConflictError(path)
@@ -138,7 +147,7 @@ export class History {
 
   private async entry(oid: string): Promise<HistoryEntry> {
     const d = await this.describe(oid)
-    let undoable = d.kind !== 'external'
+    let undoable = d.kind !== 'external' && d.files.length > 0
     for (const path of undoable ? d.files : []) {
       if (!same(await readCurrent(this.root, path), await this.blobAt(oid, path))) { undoable = false; break }
     }
