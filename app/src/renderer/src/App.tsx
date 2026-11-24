@@ -38,8 +38,11 @@ function App(): React.JSX.Element {
       if (!e.metaKey || e.altKey || e.ctrlKey) return
       const key = e.key.toLowerCase()
       const nav = [...DESTINATIONS, SETTINGS].find((d) => d.shortcut === key)
-      if (key === 'k') setCommandOpen((o) => !o)
-      else if (key === '[') router.back()
+      if (key === 'k') {
+        // Don't open the bar over a modal dialog (closing it is always fine).
+        if (!commandOpen && document.querySelector('[role="dialog"][aria-modal="true"]')) return
+        setCommandOpen((o) => !o)
+      } else if (key === '[') router.back()
       else if (key === ']') router.forward()
       else if (nav && !commandOpen) router.navigate(nav.route)
       else return

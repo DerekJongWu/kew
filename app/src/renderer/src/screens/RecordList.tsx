@@ -37,12 +37,8 @@ export function RecordList({ type }: { type: RecordType }): React.JSX.Element {
   const [creating, setCreating] = useState(false)
   const noun = TYPE_LABEL[type].toLowerCase()
 
-  const update = (patch: Partial<ListPrefs>): void =>
-    setPrefs((p) => {
-      const next = { ...p, ...patch }
-      savePrefs(type, next)
-      return next
-    })
+  const update = (patch: Partial<ListPrefs>): void => setPrefs((p) => ({ ...p, ...patch }))
+  useEffect(() => savePrefs(type, prefs), [type, prefs])
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(text), 150)

@@ -64,3 +64,47 @@ describe('prefs', () => {
     expect(() => savePrefs('theme', defaultPrefs('theme'), throwing)).not.toThrow()
   })
 })
+
+describe('prefs hardening', () => {
+  const withRaw = (raw: unknown): Storage =>
+    ({ getItem: () => JSON.stringify(raw) }) as unknown as Storage
+  it('survives a store whose access throws', () => {
+    const boom = {
+      get getItem(): never {
+        throw new Error('SecurityError')
+      },
+      get setItem(): never {
+        throw new Error('SecurityError')
+      }
+    } as unknown as Storage
+    expect(loadPrefs('company', boom)).toEqual(defaultPrefs('company'))
+    expect(() => savePrefs('company', defaultPrefs('company'), boom)).not.toThrow()
+  })
+  it('survives a missing global localStorage', () => {
+    expect(loadPrefs('company')).toEqual(defaultPrefs('company'))
+    expect(() => savePrefs('company', defaultPrefs('company'))).not.toThrow()
+  })
+  it('validates each part separately', () => {
+    const d = defaultPrefs('meeting')
+    expect(
+      loadPrefs(
+        'meeting',
+        withRaw({ columns: [1], sort: { field: 'x', dir: 'up' }, filters: { a: 'b' } })
+      )
+    ).toEqual({
+      columns: d.columns,
+      sort: d.sort,
+      filters: {}
+    })
+    expect(loadPrefs('meeting', withRaw({ columns: ['role'], filters: [] })).columns).toEqual([
+      'role'
+    ])
+    expect(loadPrefs('meeting', withRaw({ filters: { a: [1] } })).filters).toEqual({})
+    expect(
+      loadPrefs('meeting', withRaw({ sort: { field: 'x', dir: 'asc' }, filters: { a: ['b'] } }))
+    ).toMatchObject({
+      sort: { field: 'x', dir: 'asc' },
+      filters: { a: ['b'] }
+    })
+  })
+})
