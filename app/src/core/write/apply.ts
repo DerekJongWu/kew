@@ -13,6 +13,8 @@ import type { Schema } from '../schema/types'
 export interface Ctx {
   root: string
   schema: () => Schema
+  /** Swaps in a new schema (schema changes call it before re-indexing). Optional. */
+  setSchema?: (s: Schema) => void
   index: Index
   history: History
   today: () => string
