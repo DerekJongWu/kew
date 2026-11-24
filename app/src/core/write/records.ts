@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { applyAction, type Ctx, type FileEdit } from './apply'
 import { newNote, parseNote, setKeys, setBody as setNoteBody } from '../note'
 import { safeFilename, uniqueName } from '../names'
+import { nameProblem } from '../../shared/names'
 import { newId } from '../ids'
 import { extractLinks, rewriteLinks, unlink } from '../links'
 import { coerceValue, ValidationError } from '../schema/validate'
@@ -73,20 +74,10 @@ const companyOf = (fields: Record<string, FieldValue>): string =>
 
 // Characters that break file names (/ \ : * ? " < >) or links (| # [ ] ^).
 // Rejecting them keeps name == file name == link text.
-const BAD_NAME_CHARS = /[\\/:*?"<>|#^[\]]/g
-
 function cleanName(name: string): string {
-  const n = name.trim()
-  if (!n) throw new ValidationError('A name is required.')
-  const bad = [...new Set(n.match(BAD_NAME_CHARS) ?? [])]
-  if (bad.length > 0) {
-    throw new ValidationError(
-      `A name can't contain ${bad.join(' ')} (they break file names or links).`
-    )
-  }
-  if (safeFilename(n) !== n)
-    throw new ValidationError("A name can't contain repeated spaces or line breaks.")
-  return n
+  const problem = nameProblem(name)
+  if (problem) throw new ValidationError(problem)
+  return name.trim()
 }
 
 /** Every .md file in the vault, skipping dot-files and dot-directories. */

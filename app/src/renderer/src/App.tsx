@@ -10,6 +10,9 @@ import { CommandBar } from './components/CommandBar'
 import { Icon } from './components/Icon'
 import { Today } from './screens/Today'
 import { Pipeline } from './screens/Pipeline'
+import { RecordList } from './screens/RecordList'
+import { NewRecordDialog } from './components/NewRecordDialog'
+import type { RecordType } from '../../shared/api'
 import { Placeholder } from './screens/Placeholder'
 import { Onboarding } from './screens/Onboarding'
 
@@ -28,6 +31,7 @@ function App(): React.JSX.Element {
   const { data: state, error: stateError, reload } = useQuery(() => kew.getState(), [])
   const [route] = useRoute()
   const [commandOpen, setCommandOpen] = useState(false)
+  const [newType, setNewType] = useState<RecordType | null>(null)
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
@@ -112,12 +116,21 @@ function App(): React.JSX.Element {
             <Today />
           ) : route.name === 'pipeline' ? (
             <Pipeline />
+          ) : route.name === 'list' ? (
+            <RecordList key={route.type} type={route.type} />
           ) : (
             <Placeholder key={JSON.stringify(route)} route={route} />
           )}
         </div>
       </main>
-      {commandOpen && <CommandBar onClose={() => setCommandOpen(false)} onUndoLast={undoLast} />}
+      {commandOpen && (
+        <CommandBar
+          onClose={() => setCommandOpen(false)}
+          onUndoLast={undoLast}
+          onNew={setNewType}
+        />
+      )}
+      {newType && <NewRecordDialog key={newType} type={newType} onClose={() => setNewType(null)} />}
     </div>
   )
 }

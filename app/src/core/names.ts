@@ -18,8 +18,7 @@ export const linkedinSlug = (s: string): string => {
 export const safeFilename = (s: string): string =>
   String(s).replace(/[\\/:*?"<>|#^[\]]/g, '-').replace(/\s+/g, ' ').trim()
 
-export const meetingName = (date: string, subject: string, meetingType?: string): string =>
-  [date, subject, meetingType].filter(Boolean).join(' ')
+export { meetingName } from '../shared/names'
 
 export function uniqueName(
   name: string,

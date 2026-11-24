@@ -127,6 +127,144 @@ async function pipeline(win) {
   await waitFor(win, '.board .card')
 }
 
+const notesIn = (folder) => readdirSync(join(vaultDir, folder)).filter((f) => f.endsWith('.md'))
+const readNote = (folder, file) => readFileSync(join(vaultDir, folder, file), 'utf8')
+const openNew = async (win, label) => {
+  await js(win, `(() => { const b = [...document.querySelectorAll('button')].find((e) => e.textContent.trim() === ${JSON.stringify(label)}); b.focus(); b.click() })()`)
+  await waitFor(win, '[role="dialog"][aria-modal="true"] input')
+  await sleep(200)
+}
+const dialogFocus = (win) => js(win, `document.activeElement.id ? document.activeElement.labels?.[0]?.textContent : document.activeElement.tagName`)
+const submit = async (win) => {
+  await sleep(200) // let typed text reach React state before Return
+  key(win, 'Return')
+}
+/** Pick the first relation-picker result for `label` after typing `text`. */
+async function pickRelation(win, label, text) {
+  await js(win, `[...document.querySelectorAll('.relpick-input')].find((i) => i.labels[0].textContent === ${JSON.stringify(label)}).focus()`)
+  if (text) win.webContents.insertText(text)
+  await waitFor(win, '.relpick-opt')
+  await sleep(500)
+  key(win, 'Return')
+  await sleep(200)
+}
+
+async function lists(win) {
+  key(win, '3', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await shot(win, 'list-companies-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'list-companies-dark.png')
+  nativeTheme.themeSource = 'light'
+  key(win, '4', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await shot(win, 'list-people-light.png')
+
+  // Company: name + website. The file appears with id/type/name and the template body.
+  key(win, '3', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await openNew(win, 'New company')
+  log('dialog focus starts on:', await dialogFocus(win))
+  win.webContents.insertText('Zeta Test Co')
+  key(win, 'Tab')
+  win.webContents.insertText('zeta-test.example')
+  await shot(win, 'new-record-dialog-light.png')
+  await submit(win)
+  await waitFor(win, '.record, .screen-title')
+  await sleep(800)
+  log('company file:', notesIn('Companies').includes('Zeta Test Co.md'))
+  const co = readNote('Companies', 'Zeta Test Co.md')
+  log('company frontmatter has id/type/name/website:', /^id: /m.test(co), /^type: company/m.test(co), /^name: Zeta Test Co/m.test(co), /website: .*zeta-test/.test(co))
+  log('company body (first lines):', JSON.stringify(co.split('---').slice(2).join('---').slice(0, 80)))
+
+  // Duplicate by website domain of a sample company.
+  const sample = notesIn('Companies').find((f) => /^website: .+/m.test(readNote('Companies', f)) && f !== 'Zeta Test Co.md')
+  const site = /^website: (.+)$/m.exec(readNote('Companies', sample))[1].replace(/['"]/g, '')
+  log('sample company', sample, 'website', site)
+  key(win, '3', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await openNew(win, 'New company')
+  win.webContents.insertText('A Brand New Name')
+  key(win, 'Tab')
+  win.webContents.insertText(site)
+  log('form values before submit:', await js(win, `[...document.querySelectorAll('[role=dialog] input')].map((i) => i.value)`))
+  await submit(win)
+  await waitFor(win, '.dupes')
+  await sleep(300)
+  log('dupes shown:', await js(win, `document.querySelector('.dupes').textContent`))
+  await shot(win, 'new-record-duplicate-light.png')
+  const before = notesIn('Companies').length
+  await clickText(win, '.form-actions button', 'Create anyway')
+  await sleep(1000)
+  log('create anyway added a file:', notesIn('Companies').length === before + 1, notesIn('Companies').includes('A Brand New Name.md'))
+
+  // Person with a company.
+  key(win, '4', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await openNew(win, 'New person')
+  win.webContents.insertText('Test Person')
+  await pickRelation(win, 'Company', 'Zeta')
+  await submit(win)
+  await sleep(1000)
+  log('person file:', /company: .*Zeta Test Co/.test(readNote('People', 'Test Person.md')), /type: person/.test(readNote('People', 'Test Person.md')))
+
+  // Meeting: name is built from date + company + type.
+  key(win, '5', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await openNew(win, 'New meeting')
+  await pickRelation(win, 'Company', 'Zeta')
+  await js(win, `(() => { const s = document.querySelector('select'); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(s, 'intro'); s.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+  await sleep(200)
+  log('meeting name field:', await js(win, `document.querySelector('[role=dialog] input.field[required]').value`))
+  await submit(win)
+  await sleep(1000)
+  log('meeting files with Zeta:', notesIn('Meetings').filter((f) => f.includes('Zeta')))
+
+  // Theme and research.
+  key(win, '6', ['meta'])
+  await waitFor(win, '.dtable-body, .empty')
+  await openNew(win, 'New theme')
+  win.webContents.insertText('Test Theme')
+  await submit(win)
+  await sleep(1000)
+  log('theme file:', notesIn('Themes').includes('Test Theme.md'), /type: theme/.test(readNote('Themes', 'Test Theme.md')))
+  key(win, '7', ['meta'])
+  await waitFor(win, '.dtable-body, .empty')
+  await openNew(win, 'New research')
+  win.webContents.insertText('Test Research')
+  await pickRelation(win, 'About', 'Zeta')
+  await submit(win)
+  await sleep(1000)
+  log('research file about:', /about:[\s\S]*Zeta Test Co/.test(readNote('Research', 'Test Research.md')))
+
+  // Validation, Escape and focus return.
+  key(win, '3', ['meta'])
+  await waitFor(win, '.dtable-body')
+  await openNew(win, 'New company')
+  win.webContents.insertText('Bad/Name')
+  await submit(win)
+  await sleep(300)
+  log('inline error:', await js(win, `document.querySelector('.form-error')?.textContent`))
+  key(win, 'Escape')
+  await sleep(300)
+  log('dialog closed:', !(await js(win, `!!document.querySelector('[role=dialog]')`)), '| focus back on:', await js(win, `document.activeElement.textContent`))
+  // ⌘N opens it; ⌘K "New person" opens the same dialog.
+  key(win, 'N', ['meta'])
+  await waitFor(win, '[role="dialog"][aria-modal="true"]')
+  log('cmd+N dialog:', await js(win, `document.querySelector('.dialog-title').textContent`))
+  key(win, 'Escape')
+  await sleep(300)
+  key(win, 'K', ['meta'])
+  await waitFor(win, '.cmdk-input')
+  win.webContents.insertText('new person')
+  await sleep(300)
+  key(win, 'Return')
+  await waitFor(win, '[role="dialog"][aria-modal="true"]')
+  log('cmd+K dialog:', await js(win, `document.querySelector('.dialog-title').textContent`))
+  key(win, 'Escape')
+  await sleep(300)
+}
+
 async function main() {
   await app.whenReady()
   mkdirSync(outDir, { recursive: true })
@@ -171,6 +309,7 @@ async function main() {
   nativeTheme.themeSource = 'light'
 
   await pipeline(win)
+  await lists(win)
 
   key(win, 'K', ['meta'])
   await waitFor(win, '.cmdk-input')

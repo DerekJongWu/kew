@@ -1180,3 +1180,180 @@
 .card-foot .btn-ghost {
   margin-left: calc(var(--s-2) * -1);
 }
+
+/* ---------- New-record dialog and relation picker ---------- */
+
+.dialog-form {
+  width: min(520px, calc(100% - 32px));
+  max-height: 80vh;
+  overflow: auto;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.form-row,
+.relpick {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.form-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-2);
+}
+.form-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.form-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.form-check input {
+  accent-color: var(--accent);
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+.field[aria-invalid='true'],
+.field-invalid {
+  border-color: var(--danger);
+}
+.relpick-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--control-h);
+  padding: 2px var(--s-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+.relpick-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.relpick-input {
+  flex: 1;
+  min-width: 120px;
+  height: 24px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--text);
+}
+.relpick-input::placeholder {
+  color: var(--text-3);
+}
+.relpick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  padding: 0 2px 0 var(--s-2);
+  border-radius: var(--r-chip);
+  background: var(--hover);
+  color: var(--text);
+}
+.relpick-x {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--r-chip);
+  background: none;
+  color: var(--text-2);
+  line-height: 1;
+}
+.relpick-x:hover {
+  background: var(--selected);
+  color: var(--text);
+}
+.relpick-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow: auto;
+  margin: 2px 0 0;
+  padding: var(--s-1);
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pop);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+}
+.relpick-opt {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: 5px var(--s-2);
+  border-radius: var(--r-control);
+  cursor: default;
+}
+.relpick-opt[aria-selected='true'] {
+  background: var(--selected);
+}
+.relpick-type,
+.relpick-none {
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.relpick-none {
+  padding: 5px var(--s-2);
+}
+.dupes {
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--bg);
+}
+.dupes-title {
+  font-weight: var(--weight-strong);
+}
+.dupes-list {
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.dupes-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+}
+.dupes-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-medium);
+}
+.dupes-why {
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+.list-tools-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.list-search {
+  width: 200px;
+}
