@@ -1,7 +1,41 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { registerIpc, reopenLast } from './ipc'
+import { watchVault, type VaultWatcher } from './watcher'
+import { CHANGED_CHANNEL } from '../shared/methods'
+import type { Vault } from '../core/vault'
+
+let vault: Vault | null = null
+let watcher: VaultWatcher | null = null
+
+/** Local calendar date, YYYY-MM-DD. */
+function today(): string {
+  const d = new Date()
+  const p = (n: number): string => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/**
+ * Tell every window something changed. The event carries the changed ids; the renderer re-queries
+ * (including getState(), whose vault.schemaError reflects a broken .kew/schema.yaml).
+ */
+function broadcast(ids: string[]): void {
+  for (const w of BrowserWindow.getAllWindows()) w.webContents.send(CHANGED_CHANNEL, ids)
+}
+
+function startWatcher(v: Vault): void {
+  watcher = watchVault(v.root, (paths) => {
+    v.onExternalChange(paths).then(
+      (ids) => {
+        // Schema edits can change schemaError without changing any record, so always notify then.
+        if (ids.length > 0 || paths.includes('.kew/schema.yaml')) broadcast(ids)
+      },
+      (e) => console.error('External change failed', e)
+    )
+  })
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -24,7 +58,7 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    if (details.url.startsWith('https:')) shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
@@ -42,7 +76,7 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('app.kew.desktop')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -51,10 +85,30 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
-
-  createWindow()
+  const handlers = registerIpc(
+    ipcMain,
+    () => vault,
+    (v) => {
+      vault = v
+    },
+    {
+      userData: app.getPath('userData'),
+      home: app.getPath('home'),
+      today,
+      chooseFolder: async () => {
+        const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
+        return r.canceled ? null : (r.filePaths[0] ?? null)
+      },
+      showInFolder: (p) => shell.showItemInFolder(p),
+      onVaultOpened: startWatcher,
+      onVaultClosed: () => {
+        void watcher?.close()
+        watcher = null
+      },
+      markOwnWrite: (files) => watcher?.markOwnWrite(files)
+    }
+  )
+  void reopenLast(handlers, app.getPath('userData')).finally(createWindow)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

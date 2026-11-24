@@ -1,16 +1,33 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { KEW_METHODS, CHANGED_CHANNEL, type Envelope } from '../shared/methods'
+import type { KewApi } from '../shared/api'
 
-// Custom APIs for renderer
-const api = {}
+async function call(method: string, args: unknown[]): Promise<unknown> {
+  const res = (await ipcRenderer.invoke(`kew:${method}`, ...args)) as Envelope
+  if ('error' in res) {
+    const e = new Error(res.error.message)
+    e.name = res.error.name
+    throw e
+  }
+  return res.value
+}
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+const kew = {
+  onChanged(cb: (changedIds: string[]) => void): () => void {
+    const listener = (_: unknown, ids: string[]): void => cb(ids)
+    ipcRenderer.on(CHANGED_CHANNEL, listener)
+    return () => ipcRenderer.removeListener(CHANGED_CHANNEL, listener)
+  }
+} as KewApi
+for (const m of KEW_METHODS) {
+  ;(kew as unknown as Record<string, unknown>)[m] = (...args: unknown[]) => call(m, args)
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('kew', kew)
   } catch (error) {
     console.error(error)
   }
@@ -18,5 +35,5 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.electron = electronAPI
   // @ts-ignore (define in dts)
-  window.api = api
+  window.kew = kew
 }
