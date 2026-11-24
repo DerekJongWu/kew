@@ -9,7 +9,7 @@ export interface Status {
 /** Turns an error from the vault into a sentence a user can act on. */
 export function plainError(e: unknown): string {
   const err = e instanceof Error ? e : new Error(String(e))
-  const message = err.message.replace(/^Error invoking remote method '[^']+': (\w*Error: )?/, '')
+  const message = err.message
   if (err.name === 'UndoConflictError') {
     const file = /Can't undo: (.+?) has changed/.exec(message)?.[1] ?? 'a file'
     const name = file.split('/').pop()!.replace(/\.md$/, '')

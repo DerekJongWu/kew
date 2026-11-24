@@ -1,15 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { KEW_METHODS, CHANGED_CHANNEL, MENU_UNDO_CHANNEL, type Envelope } from '../shared/methods'
-import type { KewApi } from '../shared/api'
+import {
+  KEW_METHODS,
+  CHANGED_CHANNEL,
+  MENU_UNDO_CHANNEL,
+  type Envelope,
+  type KewBridge
+} from '../shared/methods'
 
-async function call(method: string, args: unknown[]): Promise<unknown> {
-  const res = (await ipcRenderer.invoke(`kew:${method}`, ...args)) as Envelope
-  if ('error' in res) {
-    const e = new Error(res.error.message)
-    e.name = res.error.name
-    throw e
-  }
-  return res.value
+/** Returns the envelope as is; the renderer turns `{ error }` into a thrown Error (see api.ts). */
+async function call(method: string, args: unknown[]): Promise<Envelope> {
+  return (await ipcRenderer.invoke(`kew:${method}`, ...args)) as Envelope
 }
 
 const kew = {
@@ -23,7 +23,7 @@ const kew = {
     ipcRenderer.on(MENU_UNDO_CHANNEL, listener)
     return () => ipcRenderer.removeListener(MENU_UNDO_CHANNEL, listener)
   }
-} as KewApi
+} as KewBridge
 for (const m of KEW_METHODS) {
   ;(kew as unknown as Record<string, unknown>)[m] = (...args: unknown[]) => call(m, args)
 }

@@ -761,14 +761,15 @@
 }
 .paths,
 .recent ul {
+  margin: 0;
   padding: 0;
   list-style: none;
-}
-.paths {
-  margin-top: var(--s-5);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
   background: var(--surface);
+}
+.paths {
+  margin-top: var(--s-5);
 }
 .path,
 .recent-row {
@@ -811,12 +812,15 @@
   margin-top: var(--s-5);
 }
 .recent-title {
-  padding: 0 var(--s-4);
+  margin-bottom: var(--s-2);
+  padding: 0 var(--s-1);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-2);
 }
 .recent-missing {
+  flex: none;
+  white-space: nowrap;
   font-size: var(--text-sm);
   color: var(--text-3);
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { KewApi } from '../../shared/api'
+import { wrapBridge } from './lib/bridge'
 
-export const kew: KewApi = window.kew
+export const kew: KewApi = wrapBridge(window.kew)
 
 /** Runs `fn` on mount and whenever `deps` change or the vault reports a change. */
 export function useQuery<T>(

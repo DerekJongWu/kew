@@ -26,11 +26,6 @@ describe('plainError', () => {
       'No vault is open. Open one to continue.'
     )
   })
-  it('strips Electron IPC prefixes from other errors', () => {
-    expect(
-      plainError(new Error("Error invoking remote method 'kew:snooze': Error: Bad date"))
-    ).toBe('Bad date')
-  })
 })
 
 describe('createStatus', () => {

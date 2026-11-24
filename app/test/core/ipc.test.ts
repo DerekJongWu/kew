@@ -141,7 +141,7 @@ describe('integration through handlers', () => {
     await h.openInFinder(person.id)
     expect(shown).toHaveLength(1)
     expect(shown[0].endsWith(person.path)).toBe(true)
-    expect((await h.getState()).recent).toEqual([root])
+    expect((await h.getState()).recent).toEqual([{ root, exists: true }])
   })
 
   it('refuses a non-empty folder, then openVault adopts it; switching closes the old vault', async () => {
@@ -153,11 +153,36 @@ describe('integration through handlers', () => {
     const b = join(tmp, 'b')
     await fsp.mkdir(b)
     await fsp.writeFile(join(b, 'x.md'), '# x')
-    await expect(h.createVault('empty', b)).rejects.toMatchObject({ name: 'FolderNotEmptyError' })
+    await expect(h.createVault('empty', b)).rejects.toMatchObject({
+      name: 'FolderNotEmptyError',
+      path: b
+    })
+    expect(serializeError(await h.createVault('empty', b).catch((e) => e))).toEqual({
+      error: { name: 'FolderNotEmptyError', message: expect.any(String), path: b }
+    })
     expect((await h.planSetup(b)).willCreate.length).toBeGreaterThan(0)
     await h.openVault(b)
     expect(events).toEqual(['open:' + a, 'close', 'open:' + b])
-    expect((await h.getState()).recent).toEqual([b, a])
+    expect((await h.getState()).recent).toEqual([
+      { root: b, exists: true },
+      { root: a, exists: true }
+    ])
+  })
+})
+
+describe('recent and missing folders', () => {
+  it('flags recent folders that no longer exist and refuses to open them without writing', async () => {
+    const h = make()
+    const gone = join(tmp, 'gone')
+    await fsp.mkdir(gone)
+    await h.createVault('empty', gone)
+    await fsp.rm(gone, { recursive: true })
+    expect((await h.getState()).recent).toEqual([{ root: gone, exists: false }])
+    await expect(h.openVault(gone)).rejects.toMatchObject({
+      name: 'FolderMissingError',
+      path: gone
+    })
+    await expect(fsp.stat(gone)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })
 

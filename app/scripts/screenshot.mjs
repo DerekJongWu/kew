@@ -69,6 +69,17 @@ async function main() {
   await shot(win, 'onboarding-dark.png')
   nativeTheme.themeSource = 'light'
 
+  // Recent vaults: one folder that exists, one that doesn't (settings.json is read on each getState).
+  const existing = join(tmp, 'Fund III Deals')
+  mkdirSync(existing)
+  writeFileSync(
+    join(tmp, 'user-data', 'settings.json'),
+    JSON.stringify({ lastVault: null, recent: [existing, join(tmp, 'Old Vault')] })
+  )
+  win.webContents.reload()
+  await waitFor(win, '.recent-row')
+  await shot(win, 'onboarding-recent-light.png')
+
   await win.webContents.executeJavaScript(
     `window.kew.createVault('sample', ${JSON.stringify(vaultDir)})`
   )

@@ -1,7 +1,7 @@
-import type { KewApi } from '../shared/api'
+import type { KewBridge } from '../shared/methods'
 
 declare global {
   interface Window {
-    kew: KewApi
+    kew: KewBridge
   }
 }

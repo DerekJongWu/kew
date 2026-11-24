@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   isFolderNotEmpty,
   notEmptyFolder,
-  isMissingFolder,
+  isFolderMissing,
   folderName,
   planSummary,
   prettyPath
@@ -11,19 +11,17 @@ import {
 const named = (name: string, message = 'x'): Error => Object.assign(new Error(message), { name })
 
 describe('error kinds', () => {
-  it('recognises FolderNotEmptyError', () => {
-    expect(isFolderNotEmpty(named('FolderNotEmptyError'))).toBe(true)
+  it('recognises FolderNotEmptyError by name and reads its path', () => {
+    const e = Object.assign(named('FolderNotEmptyError'), { path: '/a/Kew' })
+    expect(isFolderNotEmpty(e)).toBe(true)
+    expect(notEmptyFolder(e)).toBe('/a/Kew')
     expect(isFolderNotEmpty(named('Error'))).toBe(false)
-    expect(isFolderNotEmpty(named('Error', 'Folder is not empty: /a/Kew'))).toBe(true)
-    expect(notEmptyFolder(named('Error', 'Folder is not empty: /a/Kew'))).toBe('/a/Kew')
-    expect(notEmptyFolder(named('Error', 'other'))).toBeNull()
     expect(isFolderNotEmpty('nope')).toBe(false)
+    expect(notEmptyFolder(named('Error'))).toBeNull()
   })
-  it('recognises a missing folder from ENOENT', () => {
-    expect(isMissingFolder(named('Error', "ENOENT: no such file or directory, scandir '/a'"))).toBe(
-      true
-    )
-    expect(isMissingFolder(named('Error', 'EACCES: permission denied'))).toBe(false)
+  it('recognises FolderMissingError by name', () => {
+    expect(isFolderMissing(named('FolderMissingError'))).toBe(true)
+    expect(isFolderMissing(named('Error', 'ENOENT'))).toBe(false)
   })
 })
 

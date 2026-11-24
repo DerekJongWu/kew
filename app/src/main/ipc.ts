@@ -23,10 +23,19 @@ export interface Deps {
   markOwnWrite(files: string[]): void
 }
 
-function named(name: string, message: string): Error {
-  const e = new Error(message)
+function named(name: string, message: string, path?: string): Error & { path?: string } {
+  const e: Error & { path?: string } = new Error(message)
   e.name = name
+  if (path !== undefined) e.path = path
   return e
+}
+
+async function isDirectory(p: string): Promise<boolean> {
+  try {
+    return (await fsp.stat(p)).isDirectory()
+  } catch {
+    return false
+  }
 }
 
 const IGNORED_ENTRIES = new Set(['.DS_Store'])
@@ -87,18 +96,26 @@ export function buildHandlers(
   const raw = {
     getState: async () => ({
       vault: getVault()?.info() ?? null,
-      recent: loadSettings(deps.userData).recent
+      recent: await Promise.all(
+        loadSettings(deps.userData).recent.map(async (root) => ({
+          root,
+          exists: await isDirectory(root)
+        }))
+      )
     }),
     planSetup: (root) => planSetup(root),
     createVault: async (kind, root) => {
       const target = root ?? join(deps.home, 'Documents', kind === 'sample' ? 'Kew Sample' : 'Kew')
       if (await isNonEmpty(target))
-        throw named('FolderNotEmptyError', `Folder is not empty: ${target}`)
+        throw named('FolderNotEmptyError', `Folder is not empty: ${target}`, target)
       if (kind === 'sample') await generateSample(target, deps.today())
       else await setupVault(target)
       return open(target)
     },
     openVault: async (root) => {
+      // Never recreate a vault's skeleton for a folder that has gone away.
+      if (!(await isDirectory(root)))
+        throw named('FolderMissingError', `Folder not found: ${root}`, root)
       await setupVault(root)
       return open(root)
     },
@@ -142,7 +159,14 @@ export function buildHandlers(
 
 export function serializeError(e: unknown): Envelope {
   const err = e instanceof Error ? e : new Error(String(e))
-  return { error: { name: err.name, message: err.message } }
+  const path = (err as { path?: unknown }).path
+  return {
+    error: {
+      name: err.name,
+      message: err.message,
+      ...(err.name === 'FolderNotEmptyError' && typeof path === 'string' ? { path } : {})
+    }
+  }
 }
 
 /** Wires every handler to `ipc.handle('kew:<method>')`; results are wrapped as `{ value }` or `{ error }`. */

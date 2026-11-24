@@ -38,4 +38,20 @@ export const _exhaustive: [Missing] extends [never] ? true : never = true
 export const CHANGED_CHANNEL = 'kew:changed'
 /** Sent by Edit > Undo (⌘Z) in the app menu. */
 export const MENU_UNDO_CHANNEL = 'kew:menu-undo'
-export type Envelope = { value: unknown } | { error: { name: string; message: string } }
+export interface ErrorInfo {
+  name: string
+  message: string
+  /** Set on FolderNotEmptyError: the folder that wasn't empty. */
+  path?: string
+}
+export type Envelope<T = unknown> = { value: T } | { error: ErrorInfo }
+
+/**
+ * What the preload exposes as window.kew. Methods return the envelope unchanged: an Error built in
+ * the preload loses its name crossing the context bridge, so the renderer rebuilds it (api.ts).
+ */
+export type KewBridge = {
+  [M in InvokeMethod]: (
+    ...args: Parameters<KewApi[M]>
+  ) => Promise<Envelope<Awaited<ReturnType<KewApi[M]>>>>
+} & Pick<KewApi, 'onChanged' | 'onMenuUndo'>

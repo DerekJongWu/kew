@@ -37,12 +37,13 @@ export interface ViewDef { id: string; name: string; type: RecordType; layout: '
 export interface SearchHit { record: RecordSummary; snippet: string }
 export interface ListQuery { filters?: Record<string, string[]>; sort?: { field: string; dir: 'asc' | 'desc' }; text?: string }
 export interface VaultInfo { root: string; name: string; isSample: boolean; schemaError: string | null }
+export interface RecentVault { root: string; exists: boolean }
 export interface SetupPlan { root: string; willCreate: string[]; existingNotes: number }
 // Schema types (FieldDef, TypeDef, Schema, SchemaChange) are re-exported above from core/schema/types.ts.
 
 export interface KewApi {
   // app + vault lifecycle
-  getState(): Promise<{ vault: VaultInfo | null; recent: string[] }>
+  getState(): Promise<{ vault: VaultInfo | null; recent: RecentVault[] }>
   planSetup(root: string): Promise<SetupPlan>
   createVault(kind: 'sample' | 'empty', root?: string): Promise<VaultInfo>
   openVault(root: string): Promise<VaultInfo>

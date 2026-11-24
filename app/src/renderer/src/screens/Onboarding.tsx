@@ -5,7 +5,7 @@ import { plainError } from '../lib/actions'
 import {
   folderName,
   isFolderNotEmpty,
-  isMissingFolder,
+  isFolderMissing,
   notEmptyFolder,
   planSummary,
   prettyPath
@@ -27,6 +27,7 @@ export function Onboarding({
   const [step, setStep] = useState<Step>({ kind: 'home' })
   const [busy, setBusy] = useState<Busy>(null)
   const [error, setError] = useState<string | null>(null)
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set())
 
   /** Runs one call with a busy state; failures show inline in plain words. */
   const run = async (key: Exclude<Busy, null>, fn: () => Promise<void>): Promise<void> => {
@@ -64,7 +65,7 @@ export function Onboarding({
           onOpened()
         } catch (e) {
           if (!isFolderNotEmpty(e)) throw e
-          setStep({ kind: 'not-empty', plan: await kew.planSetup(root) })
+          setStep({ kind: 'not-empty', plan: await kew.planSetup(notEmptyFolder(e) ?? root) })
         }
       } else setStep({ kind: 'plan', plan: await kew.planSetup(root) })
     })
@@ -138,10 +139,16 @@ export function Onboarding({
             )}
             <Recent
               busy={busy}
+              gone={gone}
               onOpen={(root) =>
                 void run(`recent:${root}`, async () => {
-                  await kew.openVault(root)
-                  onOpened()
+                  try {
+                    await kew.openVault(root)
+                    onOpened()
+                  } catch (e) {
+                    if (!isFolderMissing(e)) throw e
+                    setGone((g) => new Set(g).add(root))
+                  }
                 })
               }
             />
@@ -230,23 +237,20 @@ function PlanCard({
 /** Recent vaults. A folder that no longer exists reads "Not found" and can't be opened. */
 function Recent({
   busy,
+  gone,
   onOpen
 }: {
   busy: Busy
+  gone: ReadonlySet<string>
   onOpen: (root: string) => void
 }): React.JSX.Element | null {
-  const { data } = useQuery(async () => {
-    const { recent } = await kew.getState()
-    return Promise.all(
-      recent.map(async (root) => ({
-        root,
-        missing: await kew.planSetup(root).then(
-          () => false,
-          (e: unknown) => isMissingFolder(e)
-        )
-      }))
+  const { data, error } = useQuery(async () => (await kew.getState()).recent, [])
+  if (error)
+    return (
+      <p className="onboarding-error" role="alert">
+        Couldn’t load your recent vaults. {plainError(error)}
+      </p>
     )
-  }, [])
   if (!data || data.length === 0) return null
   return (
     <section className="recent" aria-labelledby="recent-title">
@@ -260,7 +264,7 @@ function Recent({
               <p className="recent-name">{folderName(r.root)}</p>
               <p className="recent-path">{prettyPath(r.root)}</p>
             </div>
-            {r.missing ? (
+            {!r.exists || gone.has(r.root) ? (
               <span className="recent-missing">Not found</span>
             ) : (
               <Button disabled={busy !== null} onClick={() => onOpen(r.root)}>

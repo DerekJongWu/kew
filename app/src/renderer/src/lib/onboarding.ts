@@ -1,18 +1,17 @@
 // Pure helpers for the first-launch screen.
 import type { SetupPlan } from '../../../shared/api'
 
-/** The error's name can be lost crossing the context bridge, so the message counts too. */
 export const isFolderNotEmpty = (e: unknown): boolean =>
-  e instanceof Error &&
-  (e.name === 'FolderNotEmptyError' || /Folder is not empty: /.test(e.message))
+  e instanceof Error && e.name === 'FolderNotEmptyError'
 
-/** The folder path createVault names in a FolderNotEmptyError. */
+export const isFolderMissing = (e: unknown): boolean =>
+  e instanceof Error && e.name === 'FolderMissingError'
+
+/** The folder a FolderNotEmptyError names (set by the main process). */
 export const notEmptyFolder = (e: unknown): string | null =>
-  e instanceof Error ? (/Folder is not empty: (.+)$/.exec(e.message)?.[1] ?? null) : null
-
-/** planSetup rejects with ENOENT when the folder is gone (a stale recent vault). */
-export const isMissingFolder = (e: unknown): boolean =>
-  e instanceof Error && /ENOENT/.test(e.message)
+  e instanceof Error && typeof (e as { path?: unknown }).path === 'string'
+    ? (e as unknown as { path: string }).path
+    : null
 
 export function folderName(path: string): string {
   const parts = path.split('/').filter(Boolean)
