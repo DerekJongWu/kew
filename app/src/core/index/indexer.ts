@@ -23,6 +23,11 @@ const baseName = (rel: string): string => rel.split('/').pop()!.replace(/\.md$/i
 
 export function indexFile(db: Db, rel: string, text: string, schema: Schema): void {
   const folderType = RECORD_TYPES.find((t) => rel.startsWith(schema.types[t].folder + '/'))
+  // Same rule as rebuild: only .md files inside a type folder are records.
+  if (!folderType || !/\.md$/i.test(rel)) {
+    removeFile(db, rel)
+    return
+  }
   const parsed = parseNote(text)
   const problems: string[] = []
   if (!parsed.ok && parsed.error) problems.push(parsed.error)
@@ -31,15 +36,13 @@ export function indexFile(db: Db, rel: string, text: string, schema: Schema): vo
   let type: RecordType
   if (isType(declared)) {
     type = declared
-    if (folderType && folderType !== declared) {
+    if (folderType !== declared) {
       problems.push(`Type/folder mismatch: type is '${declared}' but the note is in ${schema.types[folderType].folder}/`)
-    } else if (!folderType) {
-      problems.push(`Type/folder mismatch: type is '${declared}' but the note is not in ${schema.types[declared].folder}/`)
     }
-  } else if (folderType) {
+  } else {
     type = folderType
     if (parsed.ok && declared !== undefined && declared !== '') problems.push(`Unknown type '${String(declared)}'`)
-  } else return // not a record
+  }
 
   const fields = parsed.fm
   problems.push(...validateFields(schema, type, fields))

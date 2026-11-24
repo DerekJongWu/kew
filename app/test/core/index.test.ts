@@ -164,6 +164,30 @@ describe('incremental edits and problems', () => {
   })
 })
 
+describe('what counts as a record', () => {
+  it('ignores notes outside type folders and non-.md paths, like rebuild', () => {
+    const local = openIndex(':memory:')
+    local.indexFile('Scratch/x.md', '---\ntype: company\nname: X\n---\n', schema)
+    local.indexFile('Companies/x.png', '---\ntype: company\nname: Y\n---\n', schema)
+    expect(local.byPath('Scratch/x.md')).toBeNull()
+    expect(local.byPath('Companies/x.png')).toBeNull()
+    expect(local.list('company')).toEqual([])
+  })
+
+  it('drops every row of a note that stops being a record', () => {
+    const local = openIndex(':memory:')
+    const text = '---\ntype: company\nname: Gone Co\naliases: [Gc]\n---\nuniqueword [[Elsewhere]]\n'
+    local.indexFile('Companies/Gone Co.md', text, schema)
+    expect(local.resolveName('gc')).not.toBeNull()
+    const moved = { ...schema, types: { ...schema.types, company: { ...schema.types.company, folder: 'Cos' } } }
+    local.indexFile('Companies/Gone Co.md', text, moved)
+    expect(local.byPath('Companies/Gone Co.md')).toBeNull()
+    expect(local.resolveName('gc')).toBeNull()
+    expect(local.allNames().size).toBe(0)
+    expect(local.search('uniqueword')).toEqual([])
+  })
+})
+
 describe('performance', () => {
   it('rebuilds 2,000 notes in under 5 seconds', async () => {
     const root = mkdtempSync(join(tmpdir(), 'kew-perf-'))
