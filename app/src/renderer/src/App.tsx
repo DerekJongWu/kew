@@ -10,7 +10,7 @@ import { CommandBar } from './components/CommandBar'
 import { Icon } from './components/Icon'
 import { Today } from './screens/Today'
 import { Placeholder } from './screens/Placeholder'
-import { NoVault } from './screens/NoVault'
+import { Onboarding } from './screens/Onboarding'
 
 /** ⌘Z (Edit > Undo in the app menu): undo the newest action. Failures land in the status line in plain words. */
 async function undoLast(): Promise<void> {
@@ -69,7 +69,16 @@ function App(): React.JSX.Element {
       </div>
     )
   if (!state) return <div className="app-loading drag" />
-  if (!state.vault) return <NoVault />
+  if (!state.vault || route.name === 'onboarding')
+    return (
+      <Onboarding
+        onOpened={() => {
+          router.navigate({ name: 'today' })
+          reload()
+        }}
+        onCancel={state.vault ? router.back : undefined}
+      />
+    )
 
   return (
     <div className="app">

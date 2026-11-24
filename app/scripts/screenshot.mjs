@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type -- plain .mjs, no annotations */
 // Screenshots of the BUILT app for design review. Run via `npm run screenshot`.
 // Starts the real main entry with a fresh temp userData folder, creates a sample vault in a
-// temp folder through window.kew, then captures Today (light, dark) and the ⌘K command bar.
+// temp folder through window.kew, then captures onboarding first, then Today (light, dark) and the ⌘K command bar.
 import { app, BrowserWindow, nativeTheme } from 'electron'
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -60,6 +60,15 @@ async function main() {
   }
   if (win.webContents.isLoading())
     await new Promise((r) => win.webContents.once('did-finish-load', r))
+  // First launch: fresh user data and no vault, so the welcome screen shows.
+  win.setSize(1280, 800)
+  await waitFor(win, '.onboarding .path')
+  win.focus()
+  await shot(win, 'onboarding-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'onboarding-dark.png')
+  nativeTheme.themeSource = 'light'
+
   await win.webContents.executeJavaScript(
     `window.kew.createVault('sample', ${JSON.stringify(vaultDir)})`
   )

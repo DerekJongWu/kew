@@ -51,6 +51,16 @@ describe('router history', () => {
   })
 })
 
+describe('onboarding route', () => {
+  it('is navigable and can be left with back', () => {
+    const r = createRouter()
+    r.navigate({ name: 'onboarding' })
+    expect(r.current()).toEqual({ name: 'onboarding' })
+    r.back()
+    expect(r.current()).toEqual(today)
+  })
+})
+
 describe('createRouter store', () => {
   it('notifies subscribers on navigate, back and forward', () => {
     const r = createRouter()

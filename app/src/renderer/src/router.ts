@@ -9,6 +9,7 @@ export type Route =
   | { name: 'record'; id: string }
   | { name: 'search'; q: string }
   | { name: 'settings'; tab: 'fields' | 'vault' }
+  | { name: 'onboarding' }
 
 export interface Nav {
   stack: Route[]
