@@ -3,8 +3,8 @@
 // Starts the real main entry with a fresh temp userData folder, creates a sample vault in a
 // temp folder through window.kew, then captures onboarding first, then Today (light, dark) and the ⌘K command bar.
 import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs'
+import { tmpdir, homedir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -19,6 +19,16 @@ const vaultDir = join(tmp, 'Kew Sample')
 
 app.setPath('userData', join(tmp, 'user-data')) // same effect as --user-data-dir
 nativeTheme.themeSource = 'light'
+// Never touch the real Documents folder: point the app's home at the temp dir and check before/after.
+const realKew = ['Kew Sample', 'Kew'].map((n) => join(homedir(), 'Documents', n))
+if (realKew.some((p) => existsSync(p))) {
+  console.error(`Refusing to run: ${realKew.filter((p) => existsSync(p)).join(', ')} already exists. Move it away first.`)
+  process.exit(1)
+}
+process.env.KEW_HOME = tmp
+app.on('will-quit', () => {
+  if (realKew.some((p) => existsSync(p))) console.error('WARNING: a Kew folder appeared in the real Documents')
+})
 createRequire(import.meta.url)(join(here, '../out/main/index.js'))
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))

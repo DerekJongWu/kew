@@ -19,11 +19,13 @@ Kew is a Mac app for VC investors. It keeps your deals, people and notes in a fo
 
 Kew is not yet signed with an Apple developer certificate, so macOS blocks it the first time. You only do this once.
 
-1. Open **Kew** from Applications. A message says it can't be opened. Click **Done** (or **OK**).
+1. Open **Kew** from Applications. A message says it can't be opened. Click **Done** (or **OK**). Do not click **Move to Trash**.
 2. Open **System Settings**, then **Privacy & Security**.
 3. Scroll down to the **Security** section. You will see "Kew was blocked to protect your Mac."
 4. Click **Open Anyway**, then enter your Mac password or use Touch ID.
 5. A last message asks if you're sure. Click **Open Anyway** again.
+
+The first time Kew creates your vault, macOS may ask: "Kew would like to access files in your Documents folder." Click **Allow**. Kew needs this to save your notes.
 
 From now on Kew opens like any other app.
 
@@ -38,7 +40,7 @@ Kew asks how you want to start.
 
 - Your notes are plain text (markdown) files in your vault folder: `Documents/Kew Sample` for the sample, `Documents/Kew` for your own vault. You can open them in any text editor or in Obsidian.
 - The app's own settings and a search index are in `~/Library/Application Support/Kew`. Kew can rebuild the index at any time.
-- Nothing leaves your Mac. Kew does not connect to the internet.
+- Nothing leaves your Mac. Kew makes no internet connections and sends your data nowhere. A link in a note opens in your web browser only when you click it.
 
 ## Uninstall
 

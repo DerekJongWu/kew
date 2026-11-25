@@ -19,6 +19,10 @@ import { CHANGED_CHANNEL, FLUSH_CHANNEL, FLUSHED_CHANNEL } from '../shared/metho
 import { createCloseGuard, requestFlush } from './flush'
 import type { Vault } from '../core/vault'
 
+// Test harnesses set KEW_HOME so the sample/new vault lands in a temp folder; they read this line
+// to confirm the build honours it before touching anything.
+if (process.env.KEW_HOME) console.log(`kew:home=${process.env.KEW_HOME}`)
+
 let vault: Vault | null = null
 let watcher: VaultWatcher | null = null
 

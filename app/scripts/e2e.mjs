@@ -5,7 +5,7 @@
 // protocol (no extra dependencies). Asserts the vault files on disk after each step.
 import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync, readdirSync, existsSync, rmSync, mkdirSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { tmpdir, homedir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,6 +22,11 @@ const tmp = mkdtempSync(join(tmpdir(), 'kew-e2e-'))
 const home = join(tmp, 'home')
 mkdirSync(join(home, 'Documents'), { recursive: true })
 const vaultDir = join(home, 'Documents', 'Kew Sample')
+// Guard: never let a run touch the real Documents folder.
+const realKewFolders = ['Kew Sample', 'Kew'].map((n) => join(homedir(), 'Documents', n))
+const realBefore = realKewFolders.filter((p) => existsSync(p))
+if (realBefore.length)
+  throw new Error(`Refusing to run: ${realBefore.join(', ')} already exists. Move it away first.`)
 const port = 9300 + Math.floor(Math.random() * 500)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let passed = 0
@@ -35,8 +40,10 @@ console.log(`app: ${appPath}\ntemp: ${tmp}`)
 const child = spawn(
   binary,
   [`--user-data-dir=${join(tmp, 'user-data')}`, `--remote-debugging-port=${port}`],
-  { env: { ...process.env, HOME: home, KEW_HOME: home }, stdio: 'ignore' }
+  { env: { ...process.env, HOME: home, KEW_HOME: home }, stdio: ['ignore', 'pipe', 'ignore'] }
 )
+let stdout = ''
+child.stdout.on('data', (d) => (stdout += d))
 const exited = new Promise((r) => child.once('exit', (code, signal) => r({ code, signal })))
 
 // --- minimal CDP client ---------------------------------------------------------------------
@@ -109,6 +116,16 @@ const note = (folder, name) => join(vaultDir, folder, `${name}.md`)
 const read = (folder, name) => readFileSync(note(folder, name), 'utf8')
 
 try {
+  // 0. The app must say it honours KEW_HOME (a stale build would write into the real Documents).
+  {
+    const end = Date.now() + 15_000
+    while (!stdout.includes('kew:home=') && Date.now() < end) await sleep(100)
+    const line = /kew:home=(.*)/.exec(stdout)?.[1]?.trim()
+    if (line !== home)
+      throw new Error(`ABORT: app did not report kew:home=${home} (got ${line ?? 'nothing'}); is it a stale build?`)
+    check('app honours KEW_HOME', true)
+  }
+
   // 1. Onboarding -> sample vault
   await waitFor('.onboarding')
   check('onboarding shows on first launch', true)
@@ -175,9 +192,12 @@ try {
   check('app exited on its own', result !== null, result ? `code ${result.code}` : 'still running')
   check('pending edit was saved before exit', read('People', person).includes('Typed just before quitting.'))
 
+  check('real Documents has no new Kew folders', !realKewFolders.some((p) => existsSync(p)))
+
   console.log(`\nE2E PASS (${passed} checks)`)
 } catch (e) {
   console.error(String(e.message ?? e))
+  if (realKewFolders.some((p) => existsSync(p))) console.error('WARNING: a Kew folder appeared in the real Documents; remove it.')
   console.error('E2E FAIL')
   process.exitCode = 1
 } finally {
