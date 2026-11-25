@@ -20,6 +20,7 @@ import * as workflow from './write/workflow'
 import * as schemaChanges from './write/schema-changes'
 import { DEFAULT_SCHEMA } from './schema/defaults'
 import { loadSchema, serializeSchema } from './schema/load'
+import { ValidationError } from './schema/validate'
 import { BUILTIN_TEMPLATES, SCHEMA_PATH } from './setup'
 import type {
   ActionResult, DuplicateHit, FieldValue, HistoryEntry, KewApi, ListQuery, RecordDetail,
@@ -255,6 +256,13 @@ export class Vault implements VaultApi {
   changeSchema(change: SchemaChange): Promise<ActionResult> {
     // A full rebuild afterwards re-validates notes the migration didn't touch.
     return this.serial(async () => {
+      // A hand-broken schema file must not be overwritten with last-valid + this change.
+      const text = readOrNull(join(this.root, SCHEMA_PATH))
+      if (text !== null && loadSchema(text, this.lastValid).error) {
+        throw new ValidationError(
+          `Fix ${SCHEMA_PATH} (or undo to the last valid version) before changing fields.`
+        )
+      }
       try {
         return await schemaChanges.changeSchema(this.ctx, change)
       } finally {

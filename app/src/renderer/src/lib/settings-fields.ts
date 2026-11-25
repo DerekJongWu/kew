@@ -111,3 +111,12 @@ export function notUndoableReason(e: Pick<HistoryEntry, 'kind' | 'undoable'>): s
     ? "Edits made outside Kew can't be undone here"
     : 'This note changed since'
 }
+
+/**
+ * Why field editing is switched off, or null when it's on. While the schema file is broken,
+ * Kew shows the last valid schema; a change would overwrite the user's file with it.
+ */
+export const fieldsLockedReason = (vaultSchemaError: string | null | undefined): string | null =>
+  vaultSchemaError
+    ? 'Field editing is off until .kew/schema.yaml is fixed (or your last change to it is undone).'
+    : null

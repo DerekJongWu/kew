@@ -7,7 +7,7 @@ import { Vault, vaultDataDir } from '../../src/core/vault'
 import { BUILTIN_TEMPLATES, planSetup, setupVault } from '../../src/core/setup'
 import { generateSample } from '../../src/core/sample'
 import { parseNote } from '../../src/core/note'
-import { validateFields } from '../../src/core/schema/validate'
+import { ValidationError, validateFields } from '../../src/core/schema/validate'
 import { DEFAULT_SCHEMA } from '../../src/core/schema/defaults'
 import type { RecordType } from '../../src/shared/api'
 
@@ -223,6 +223,21 @@ describe('Vault', () => {
     expect((await v.list('company')).map((c) => c.name)).toEqual(['Glimmerbank'])
     expect((await v.schema()).types.company.folder).toBe('Companies')
     expect(readFileSync(join(root, '.kew/schema.yaml'), 'utf8')).toBe(broken)
+  })
+
+  it('refuses schema changes while .kew/schema.yaml is broken, leaving the file alone', async () => {
+    const v = await openVault()
+    const broken = 'version: 1\ntypes: [oops\n'
+    await fsp.writeFile(join(root, '.kew/schema.yaml'), broken)
+    await v.onExternalChange(['.kew/schema.yaml'])
+    const n = (await v.history()).length
+    const change = { kind: 'add-field', type: 'company', field: { key: 'region', label: 'Region', type: 'text', tier: 'custom' } } as const
+    await expect(v.changeSchema(change)).rejects.toThrow(
+      'Fix .kew/schema.yaml (or undo to the last valid version) before changing fields'
+    )
+    await expect(v.changeSchema(change)).rejects.toBeInstanceOf(ValidationError)
+    expect(readFileSync(join(root, '.kew/schema.yaml'), 'utf8')).toBe(broken)
+    expect((await v.history()).length).toBe(n)
   })
 
   it('rebuilds the index on open when the schema changed', async () => {

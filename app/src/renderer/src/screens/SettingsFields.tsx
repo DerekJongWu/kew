@@ -8,6 +8,7 @@ import {
   CATEGORIES,
   FIELD_TYPE_LABEL,
   deleteSentence,
+  fieldsLockedReason,
   hasOptions,
   moveOption,
   optionValueProblem,
@@ -182,12 +183,15 @@ function FieldEditor({
   type,
   field,
   existingKeys,
+  locked,
   onRenamed,
   onDeleted
 }: {
   type: RecordType
   field: FieldDef
   existingKeys: string[]
+  /** The schema file is broken: show the field but disable every control. */
+  locked: boolean
   onRenamed(key: string): void
   onDeleted(): void
 }): React.JSX.Element {
@@ -267,85 +271,87 @@ function FieldEditor({
       </p>
       {system && <p className="form-hint field-system">System — can’t be deleted or renamed.</p>}
 
-      <form
-        className="form"
-        noValidate
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!busy && (labelChanged || optionsChanged) && label.trim() && !optionProblem)
-            void save()
-        }}
-      >
-        <div className="form-row">
-          <label className="form-label" htmlFor={`${uid}-label`}>
-            Label
-          </label>
-          <input
-            id={`${uid}-label`}
-            className="field"
-            value={label}
-            autoComplete="off"
-            onChange={(e) => setLabel(e.target.value)}
-          />
-        </div>
-        {withOptions && <OptionsEditor field={field} options={options} onChange={setOptions} />}
-        <div className="form-actions">
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={busy || !(labelChanged || optionsChanged) || !label.trim() || optionProblem}
-          >
-            Save changes
-          </Button>
-        </div>
-      </form>
-
-      {!system && (
-        <>
-          <form
-            className="form field-danger-zone"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!busy && newKey !== field.key && !keyProblem) void rename()
-            }}
-          >
-            <div className="form-row">
-              <label className="form-label" htmlFor={`${uid}-key`}>
-                Key
-              </label>
-              <div className="prop-inline">
-                <input
-                  id={`${uid}-key`}
-                  className={`field field-grow${keyProblem ? ' field-invalid' : ''}`}
-                  aria-invalid={keyProblem ? true : undefined}
-                  value={newKey}
-                  autoComplete="off"
-                  onChange={(e) => setNewKey(e.target.value.toLowerCase())}
-                />
-                <Button type="submit" disabled={busy || newKey === field.key || !!keyProblem}>
-                  Rename key
-                </Button>
-              </div>
-              {keyProblem && newKey !== field.key ? (
-                <p className="form-error">{keyProblem}</p>
-              ) : (
-                <p className="form-hint">Rewrites the key in every note that has it.</p>
-              )}
-            </div>
-          </form>
-          <div className="field-danger-zone">
+      <fieldset className="fieldset-plain" disabled={locked}>
+        <form
+          className="form"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!busy && (labelChanged || optionsChanged) && label.trim() && !optionProblem)
+              void save()
+          }}
+        >
+          <div className="form-row">
+            <label className="form-label" htmlFor={`${uid}-label`}>
+              Label
+            </label>
+            <input
+              id={`${uid}-label`}
+              className="field"
+              value={label}
+              autoComplete="off"
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </div>
+          {withOptions && <OptionsEditor field={field} options={options} onChange={setOptions} />}
+          <div className="form-actions">
             <Button
-              variant="ghost"
-              className="btn-danger"
-              onClick={() => void askDelete()}
-              disabled={busy}
+              variant="primary"
+              type="submit"
+              disabled={busy || !(labelChanged || optionsChanged) || !label.trim() || optionProblem}
             >
-              Delete field…
+              Save changes
             </Button>
           </div>
-        </>
-      )}
+        </form>
+
+        {!system && (
+          <>
+            <form
+              className="form field-danger-zone"
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!busy && newKey !== field.key && !keyProblem) void rename()
+              }}
+            >
+              <div className="form-row">
+                <label className="form-label" htmlFor={`${uid}-key`}>
+                  Key
+                </label>
+                <div className="prop-inline">
+                  <input
+                    id={`${uid}-key`}
+                    className={`field field-grow${keyProblem ? ' field-invalid' : ''}`}
+                    aria-invalid={keyProblem ? true : undefined}
+                    value={newKey}
+                    autoComplete="off"
+                    onChange={(e) => setNewKey(e.target.value.toLowerCase())}
+                  />
+                  <Button type="submit" disabled={busy || newKey === field.key || !!keyProblem}>
+                    Rename key
+                  </Button>
+                </div>
+                {keyProblem && newKey !== field.key ? (
+                  <p className="form-error">{keyProblem}</p>
+                ) : (
+                  <p className="form-hint">Rewrites the key in every note that has it.</p>
+                )}
+              </div>
+            </form>
+            <div className="field-danger-zone">
+              <Button
+                variant="ghost"
+                className="btn-danger"
+                onClick={() => void askDelete()}
+                disabled={busy}
+              >
+                Delete field…
+              </Button>
+            </div>
+          </>
+        )}
+      </fieldset>
 
       {error && confirm === null && (
         <p className="row-error" role="alert">
@@ -379,13 +385,15 @@ export function SettingsFields(): React.JSX.Element {
   const fields = schema?.types[type].fields ?? []
   const field = fields.find((f) => f.key === selected) ?? null
   const vaultError = state?.vault?.schemaError ?? null
+  const lockedReason = fieldsLockedReason(vaultError)
 
   return (
     <div className="screen screen-wide settings">
       <SettingsHeader tab="fields" title="Fields" />
       {vaultError && (
         <div className="record-banner" role="alert">
-          Your schema file has an error, so Kew is using the last valid version: {vaultError}
+          Your schema file has an error, so Kew is using the last valid version: {vaultError}{' '}
+          {lockedReason}
         </div>
       )}
       {schemaError && (
@@ -456,7 +464,9 @@ export function SettingsFields(): React.JSX.Element {
             </tbody>
           </table>
           <div className="ftable-foot">
-            <Button onClick={() => setAdding(true)}>+ Add field</Button>
+            <Button onClick={() => setAdding(true)} disabled={!!lockedReason}>
+              + Add field
+            </Button>
           </div>
         </div>
 
@@ -466,6 +476,7 @@ export function SettingsFields(): React.JSX.Element {
             type={type}
             field={field}
             existingKeys={fields.map((f) => f.key)}
+            locked={!!lockedReason}
             onRenamed={setSelected}
             onDeleted={() => setSelected(null)}
           />
@@ -475,7 +486,7 @@ export function SettingsFields(): React.JSX.Element {
           </section>
         )}
       </div>
-      {adding && (
+      {adding && !lockedReason && (
         <AddPropertyDialog
           type={type}
           existing={fields.map((f) => f.key)}

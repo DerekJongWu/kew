@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deleteSentence,
+  fieldsLockedReason,
   moveOption,
   notUndoableReason,
   optionValueProblem,
@@ -85,5 +86,13 @@ describe('history reasons', () => {
     expect(notUndoableReason({ kind: 'action', undoable: false })).toBe('This note changed since')
     expect(notUndoableReason({ kind: 'undo', undoable: false })).toBe('This note changed since')
     expect(notUndoableReason({ kind: 'external', undoable: false })).toMatch(/outside Kew/)
+  })
+})
+
+describe('fieldsLockedReason', () => {
+  it('locks field editing while the vault reports a schema error', () => {
+    expect(fieldsLockedReason(null)).toBeNull()
+    expect(fieldsLockedReason(undefined)).toBeNull()
+    expect(fieldsLockedReason('types: bad indentation')).toMatch(/off until \.kew\/schema\.yaml is fixed/)
   })
 })

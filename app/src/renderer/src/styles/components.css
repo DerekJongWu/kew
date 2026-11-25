@@ -2044,3 +2044,11 @@ button.timeline-text {
 .search-hit[data-active='true'] .search-snippet mark {
   background: var(--surface);
 }
+
+/* Groups a panel's controls so they can be disabled together; no visual box of its own. */
+.fieldset-plain {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
