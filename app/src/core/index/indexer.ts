@@ -36,8 +36,9 @@ export function whatItIs(body: string): string {
 
 export function indexFile(db: Db, rel: string, text: string, schema: Schema): void {
   const folderType = RECORD_TYPES.find((t) => rel.startsWith(schema.types[t].folder + '/'))
-  // Same rule as rebuild: only .md files inside a type folder are records.
-  if (!folderType || !/\.md$/i.test(rel)) {
+  // Same rule as rebuild: only .md files inside a type folder are records, and dot entries are skipped.
+  const hidden = rel.split('/').some((seg) => seg.startsWith('.'))
+  if (!folderType || hidden || !/\.md$/i.test(rel)) {
     removeFile(db, rel)
     return
   }

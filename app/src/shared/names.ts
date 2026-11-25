@@ -7,6 +7,8 @@ export const BAD_NAME_CHARS = /[\\/:*?"<>|#^[\]]/g
 export function nameProblem(name: string): string | null {
   const n = name.trim()
   if (!n) return 'A name is required.'
+  // A dot file is hidden: Kew's rebuild, Finder and Obsidian all skip it.
+  if (n.startsWith('.')) return "A name can't start with a dot (the note would be hidden)."
   const bad = [...new Set(n.match(BAD_NAME_CHARS) ?? [])]
   if (bad.length > 0)
     return `A name can't contain ${bad.join(' ')} (they break file names or links).`

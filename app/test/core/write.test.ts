@@ -364,6 +364,8 @@ describe('rename', () => {
     const n = (await history.list(50)).length
     await expect(rename(ctx, QUILL_ID, 'Acme / Labs')).rejects.toThrow(/can't contain \//)
     await expect(rename(ctx, QUILL_ID, 'Acme | Labs')).rejects.toThrow(/can't contain \|/)
+    await expect(rename(ctx, QUILL_ID, '.Quill')).rejects.toThrow(/can't start with a dot/)
+    await expect(createRecord(ctx, 'company', '.Acme')).rejects.toBeInstanceOf(ValidationError)
     await expect(rename(ctx, QUILL_ID, 'quill security')).rejects.toThrow(/capitalization/)
     expect(read(QUILL)).toBe(before)
     expect(await fsp.readdir(join(vault, 'Companies'))).toContain('Quill Security.md')

@@ -77,6 +77,9 @@ describe('validate', () => {
   })
   it('flags repeated spaces', () => {
     expect(nameProblem('a  b')).toMatch(/repeated spaces/)
+    expect(nameProblem('.Acme')).toMatch(/can't start with a dot/)
+    expect(nameProblem('  .Acme')).toMatch(/can't start with a dot/)
+    expect(nameProblem('Acme.io')).toBeNull()
     expect(isNameError(nameProblem('a  b')!)).toBe(true)
   })
 })

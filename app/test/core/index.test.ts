@@ -116,6 +116,18 @@ describe('derived company fields', () => {
   })
 })
 
+describe('indexFile', () => {
+  it('skips dot-prefixed files and folders, like rebuild', () => {
+    const local = openIndex(':memory:')
+    local.indexFile('Companies/.Acme.md', '---\ntype: company\nname: .Acme\n---\n', schema)
+    local.indexFile('Companies/.drafts/Beta.md', '---\ntype: company\nname: Beta\n---\n', schema)
+    expect(local.byPath('Companies/.Acme.md')).toBeNull()
+    expect(local.byPath('Companies/.drafts/Beta.md')).toBeNull()
+    expect(local.list('company')).toEqual([])
+    local.close()
+  })
+})
+
 describe('search and duplicates', () => {
   it('finds a word that only appears in a body', () => {
     const hits = idx.search('zebrafish', 10)
