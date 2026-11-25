@@ -11,6 +11,9 @@ describe('names', () => {
   })
   it('linkedinSlug', () => {
     expect(linkedinSlug('https://linkedin.com/in/jane-doe/?x=1')).toBe('jane-doe')
+    expect(linkedinSlug('https://linkedin.com/in/j%C3%A9r%C3%B4me')).toBe('jérôme')
+    // A malformed % escape falls back to the raw slug instead of throwing.
+    expect(linkedinSlug('https://linkedin.com/in/jane%E0%A4%A')).toBe('jane%e0%a4%a')
   })
   it('safeFilename', () => {
     expect(safeFilename('Acme / Labs: AI')).toBe('Acme - Labs- AI')

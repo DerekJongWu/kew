@@ -12,7 +12,14 @@ export const normName = (s: string): string =>
 
 export const linkedinSlug = (s: string): string => {
   const m = String(s || '').match(/linkedin\.com\/in\/([^/?#]+)/i)
-  return m ? decodeURIComponent(m[1]).toLowerCase().replace(/\/$/, '') : ''
+  if (!m) return ''
+  let slug = m[1]
+  try {
+    slug = decodeURIComponent(slug)
+  } catch {
+    // a malformed % escape: keep the raw slug
+  }
+  return slug.toLowerCase().replace(/\/$/, '')
 }
 
 export const safeFilename = (s: string): string =>

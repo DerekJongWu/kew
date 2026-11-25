@@ -141,6 +141,14 @@ describe('createRecord', () => {
   })
 })
 
+describe('createRecord with a malformed LinkedIn URL', () => {
+  it('creates the person instead of throwing on a bad % escape', async () => {
+    const r = await createRecord(ctx, 'person', 'Jo Bad', { linkedin: 'https://linkedin.com/in/jo%E0%A4%A' })
+    if (!isResult(r)) throw new Error('expected a record')
+    expect(read('People/Jo Bad.md')).toContain('linkedin: https://linkedin.com/in/jo%E0%A4%A')
+  })
+})
+
 describe('setFields', () => {
   it('refuses derived fields (keys starting with _)', async () => {
     await expect(setFields(ctx, QUILL_ID, { _last_touch: 'x' })).rejects.toThrow(ValidationError)
