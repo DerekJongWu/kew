@@ -39,13 +39,13 @@ Kew asks how you want to start.
 ## Where your data lives
 
 - Your notes are plain text (markdown) files in your vault folder: `Documents/Kew Sample` for the sample, `Documents/Kew` for your own vault. You can open them in any text editor or in Obsidian.
-- The app's own settings and a search index are in `~/Library/Application Support/Kew`. Kew can rebuild the index at any time.
+- The app's own settings, a search index and a local history of note changes (what Undo uses) are in `~/Library/Application Support/Kew`. Each vault gets its own folder there, `vaults/<id>`, holding `index.sqlite` and `history.git`. Kew can rebuild the index at any time; the history keeps earlier versions of your notes and stays on your Mac.
 - Nothing leaves your Mac. Kew makes no internet connections and sends your data nowhere. A link in a note opens in your web browser only when you click it.
 
 ## Uninstall
 
 1. Quit Kew.
 2. Drag **Kew** from Applications to the Trash.
-3. Optional: to also remove the app's settings, delete the `Kew` folder in `~/Library/Application Support`. (In Finder, choose **Go**, then **Go to Folder**, and paste that path.)
+3. Optional: to also remove the app's settings, search index and note history, delete the `Kew` folder in `~/Library/Application Support`. That folder's `vaults/*/history.git` holds earlier versions of your notes, so delete it if you want those gone too. (In Finder, choose **Go**, then **Go to Folder**, and paste that path.)
 
 Your vault folder is never touched. Delete it yourself if you want it gone.
