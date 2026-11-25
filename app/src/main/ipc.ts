@@ -48,17 +48,20 @@ async function isNonEmpty(dir: string): Promise<boolean> {
   }
 }
 
-/** Stops the watcher and closes the open vault (if any). Used on switch and on app quit. */
-export function closeCurrentVault(
+/**
+ * Stops the watcher and closes the open vault (if any), resolving once its queued actions have
+ * finished. Used on switch and on app quit.
+ */
+export async function closeCurrentVault(
   getVault: () => Vault | null,
   setVault: (v: Vault | null) => void,
   deps: Pick<Deps, 'onVaultClosed'>
-): void {
+): Promise<void> {
   const v = getVault()
   if (!v) return
   deps.onVaultClosed()
-  v.close()
   setVault(null)
+  await v.close()
 }
 
 export function buildHandlers(
@@ -75,7 +78,7 @@ export function buildHandlers(
     // Open the new vault first: if it fails, the current vault stays open and usable.
     // Vault.open rebuilds the index, picking up hand edits made while the app was closed.
     const v = await Vault.open(root, vaultDataDir(deps.userData, root), { today: deps.today })
-    closeCurrentVault(getVault, setVault, deps)
+    await closeCurrentVault(getVault, setVault, deps)
     setVault(v)
     rememberVault(deps.userData, root)
     deps.onVaultOpened(v)

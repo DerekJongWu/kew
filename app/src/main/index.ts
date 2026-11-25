@@ -188,5 +188,16 @@ app.on('window-all-closed', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-// Quit: stop the watcher (clears its debounce timer) and close the SQLite handle.
-app.on('will-quit', () => closeCurrentVault(() => vault, setVault, { onVaultClosed: stopWatcher }))
+// Quit: stop the watcher (clears its debounce timer), let any queued action finish (a flush that
+// timed out may still be writing), then close the SQLite handle and exit.
+let vaultClosed = false
+app.on('will-quit', (e) => {
+  if (vaultClosed) return
+  e.preventDefault()
+  void closeCurrentVault(() => vault, setVault, { onVaultClosed: stopWatcher })
+    .catch((err) => console.error('Closing the vault failed:', err))
+    .finally(() => {
+      vaultClosed = true
+      app.exit()
+    })
+})

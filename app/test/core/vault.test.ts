@@ -42,7 +42,7 @@ beforeEach(async () => {
   await fsp.mkdir(root)
 })
 afterEach(async () => {
-  for (const v of open.splice(0)) v.close()
+  for (const v of open.splice(0)) await v.close()
   await fsp.rm(tmp, { recursive: true, force: true })
 })
 
@@ -232,7 +232,7 @@ describe('Vault', () => {
   it('falls back to the last valid schema when the file is broken, without touching it', async () => {
     let v = await openVault()
     await v.createRecord('company', 'Glimmerbank')
-    v.close()
+    await v.close()
     const broken = 'version: 1\ntypes: [oops\n'
     await fsp.writeFile(join(root, '.kew/schema.yaml'), broken)
     v = await openVault()
@@ -260,7 +260,7 @@ describe('Vault', () => {
   it('rebuilds the index on open when the schema changed', async () => {
     let v = await openVault()
     await v.createRecord('company', 'Glimmerbank', { conviction: 'high' })
-    v.close()
+    await v.close()
     const text = readFileSync(join(root, '.kew/schema.yaml'), 'utf8')
     await fsp.writeFile(join(root, '.kew/schema.yaml'), text.replace('value: high', 'value: strong'))
     v = await openVault()
@@ -304,7 +304,19 @@ describe('Vault', () => {
 
   it('can be closed twice', async () => {
     const v = await openVault()
-    v.close()
-    expect(() => v.close()).not.toThrow()
+    await v.close()
+    await expect(v.close()).resolves.toBeUndefined()
+  })
+
+  it('close waits for a queued action to finish before closing the index', async () => {
+    const v = await openVault()
+    const created = v.createRecord('company', 'Glimmerbank')
+    const closed = v.close()
+    const r = await created
+    if (!('entry' in r)) throw new Error('unexpected duplicates')
+    await closed
+    expect(readFileSync(join(root, 'Companies/Glimmerbank.md'), 'utf8')).toContain('name: Glimmerbank')
+    expect((await v.history(1))[0].message).toBe('Created Glimmerbank')
+    await expect(v.createRecord('company', 'Later')).rejects.toThrow(/closed/)
   })
 })

@@ -86,7 +86,7 @@ beforeEach(async () => {
   }
 })
 afterEach(async () => {
-  current?.close()
+  await current?.close()
   await fsp.rm(tmp, { recursive: true, force: true })
 })
 
@@ -233,14 +233,14 @@ describe('vault switching', () => {
   it('closeCurrentVault closes the vault and notifies once', async () => {
     const h = make()
     await h.createVault('empty', join(tmp, 'e'))
-    closeCurrentVault(
+    await closeCurrentVault(
       () => current,
       (v) => {
         current = v
       },
       deps
     )
-    closeCurrentVault(
+    await closeCurrentVault(
       () => current,
       (v) => {
         current = v

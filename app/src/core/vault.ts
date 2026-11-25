@@ -67,7 +67,7 @@ export class Vault implements VaultApi {
   private current: Schema = DEFAULT_SCHEMA
   private lastValid: Schema | null = null
   private schemaError: string | null = null
-  private closed = false
+  private closing: Promise<void> | null = null
   private queue: Promise<unknown> = Promise.resolve()
   private readonly ctx: Ctx
 
@@ -113,16 +113,19 @@ export class Vault implements VaultApi {
       // Always a full rebuild: it picks up notes edited, added or removed while the app was closed.
       await v.rebuild()
     } catch (e) {
-      v.close()
+      await v.close()
       throw e
     }
     return v
   }
 
-  close(): void {
-    if (this.closed) return
-    this.closed = true
-    this.index.close()
+  /**
+   * Refuses new actions, waits for the queued ones to finish, then closes the index, so a quit
+   * or a vault switch never cuts an action in half. Safe to call more than once.
+   */
+  close(): Promise<void> {
+    this.closing ??= this.queue.then(() => this.index.close())
+    return this.closing
   }
 
   info(): VaultInfo {
@@ -193,6 +196,7 @@ export class Vault implements VaultApi {
 
   /** Runs mutations one at a time, so watcher re-indexing never interleaves with an action. */
   private serial<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.closing) return Promise.reject(new Error('The vault is closed.'))
     const run = this.queue.then(fn, fn)
     this.queue = run.catch(() => undefined)
     return run
