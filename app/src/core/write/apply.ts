@@ -151,7 +151,13 @@ export async function applyAction(
       }
     }
   } catch (e) {
-    await rollBack(ctx, touched, snap)
+    const failed = await rollBack(ctx, touched, snap)
+    if (failed.length > 0) {
+      throw new Error(
+        `A write failed (${(e as Error).message}) and these files could not be put back: ${failed.join(', ')}`,
+        { cause: e }
+      )
+    }
     throw e
   }
 
@@ -198,11 +204,19 @@ function refuseCaseVariants(planned: Planned[]): void {
   }
 }
 
-async function rollBack(ctx: Ctx, touched: string[], snap: Snapshot): Promise<void> {
+/** Puts touched paths back as they were. Returns the paths it couldn't restore. */
+async function rollBack(ctx: Ctx, touched: string[], snap: Snapshot): Promise<string[]> {
   const failed: string[] = []
   for (const rel of [...new Set(touched)].reverse()) {
     const before = snap.get(rel)!
     try {
+      // A path whose write failed before changing anything needs no restoring.
+      const now = await fsp.readFile(abs(ctx.root, rel)).catch((e: NodeJS.ErrnoException) => {
+        if (e.code === 'ENOENT' || e.code === 'ENOTDIR') return null
+        throw e
+      })
+      if (now === null ? before.bytes === null : before.bytes !== null && now.equals(before.bytes))
+        continue
       if (before.bytes === null) await fsp.rm(abs(ctx.root, rel), { force: true })
       else await writeAtomic(abs(ctx.root, rel), before.bytes)
       if (before.text === null) ctx.index.removeFile(rel)
@@ -211,9 +225,7 @@ async function rollBack(ctx: Ctx, touched: string[], snap: Snapshot): Promise<vo
       failed.push(rel)
     }
   }
-  if (failed.length > 0) {
-    throw new Error(`A write failed and these files could not be put back: ${failed.join(', ')}`)
-  }
+  return failed
 }
 
 const isMoveSource = (planned: Planned[], rel: string): boolean =>

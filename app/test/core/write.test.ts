@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { promises as fsp, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -460,6 +460,50 @@ describe('applyAction', () => {
     expect(existsSync(join(locked, 'new.md'))).toBe(false)
     expect(await history.list(50)).toHaveLength(n)
     expect(idx.byId(QUILL_ID)?.path).toBe(QUILL)
+  })
+
+  it('surfaces the original write error when an existing file in a read-only folder fails', async () => {
+    const before = read(QUILL)
+    const locked = join(vault, 'Locked')
+    await fsp.mkdir(locked)
+    await fsp.writeFile(join(locked, 'old.md'), 'keep\n')
+    await fsp.chmod(locked, 0o555)
+    try {
+      const err = await applyAction(ctx, 'Two files', [
+        { path: QUILL, apply: (c) => c + 'more\n' },
+        { path: 'Locked/old.md', apply: (c) => c + 'more\n' }
+      ]).catch((e: unknown) => e)
+      expect(err).toMatchObject({ code: 'EACCES' })
+      expect((err as Error).message).not.toMatch(/could not be put back/)
+    } finally {
+      await fsp.chmod(locked, 0o755)
+    }
+    expect(read(QUILL)).toBe(before)
+    expect(read('Locked/old.md')).toBe('keep\n')
+  })
+
+  it('names the files it could not put back, keeping the original error as the cause', async () => {
+    const real = fsp.rename.bind(fsp)
+    let calls = 0
+    const fail = (code: string): NodeJS.ErrnoException =>
+      Object.assign(new Error(`${code}: simulated`), { code })
+    const spy = vi.spyOn(fsp, 'rename').mockImplementation(async (a, b) => {
+      calls++
+      if (calls === 2) throw fail('EIO') // the second file's write
+      if (calls === 3) throw fail('EPERM') // putting the first file back
+      return real(a, b)
+    })
+    try {
+      const err = (await applyAction(ctx, 'Two files', [
+        { path: QUILL, apply: (c) => c + 'more\n' },
+        { path: 'Companies/Lumen Ledger.md', apply: (c) => c + 'more\n' }
+      ]).catch((e: unknown) => e)) as Error
+      expect(err.message).toMatch(/could not be put back: Companies\/Quill Security\.md/)
+      expect(err.message).toContain('EIO: simulated')
+      expect(err.cause).toMatchObject({ code: 'EIO' })
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('refuses paths outside the vault', async () => {
