@@ -44,6 +44,18 @@ describe('History', () => {
     expect(Number.isNaN(Date.parse(list[0].time))).toBe(false)
   })
 
+  it('the initial snapshot holds only notes and .kew yaml; other files are recorded on first touch', async () => {
+    await write('Companies/deck.pdf', 'x'.repeat(2_000_000))
+    await write('Companies/logo.png', 'png')
+    await write('.kew/views.yaml', 'views: []\n')
+    await write('.kew/sample', '')
+    const h = await History.open(gitdir, vault)
+    const [initial] = await h.list(1)
+    expect(initial.files.sort()).toEqual(['.kew/schema.yaml', '.kew/views.yaml', 'Companies/Acme.md'])
+    const e = await h.commitExternal(['Companies/logo.png'])
+    expect(e?.files).toEqual(['Companies/logo.png'])
+  })
+
   it('reopening does not add another initial commit', async () => {
     await History.open(gitdir, vault)
     const h = await History.open(gitdir, vault)

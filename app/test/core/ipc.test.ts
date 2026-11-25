@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { Index } from '../../src/core/index'
 import { promises as fsp } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -172,6 +173,33 @@ describe('integration through handlers', () => {
       { root: b, exists: true },
       { root: a, exists: true }
     ])
+  })
+})
+
+describe('opening a vault', () => {
+  it('rebuilds the index exactly once', async () => {
+    const spy = vi.spyOn(Index.prototype, 'rebuild')
+    try {
+      const h = make()
+      const a = join(tmp, 'once')
+      await h.createVault('empty', a)
+      expect(spy).toHaveBeenCalledTimes(1)
+      spy.mockClear()
+      await h.openVault(a)
+      expect(spy).toHaveBeenCalledTimes(1)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('picks up notes added by hand while the app was closed', async () => {
+    const h = make()
+    const a = join(tmp, 'hand')
+    await h.createVault('empty', a)
+    await h.openVault(a) // reopen with a populated index
+    await fsp.writeFile(join(a, 'Companies/Hand Made.md'), '---\ntype: company\nname: Hand Made\n---\n')
+    await h.openVault(a)
+    expect((await h.list('company')).map((c) => c.name)).toEqual(['Hand Made'])
   })
 })
 

@@ -163,7 +163,10 @@ describe('sample vault', () => {
     const h = await v.history()
     expect(h).toHaveLength(1)
     expect(h[0].message).toBe('Initial state')
-    expect(h[0].files).toContain('.kew/sample')
+    expect(h[0].files).toContain('.kew/schema.yaml')
+    expect(h[0].files).toContain('Companies/Pinemoth Analytics.md')
+    // Only notes and .kew/*.yaml go into the initial snapshot (not the .kew/sample marker).
+    expect(h[0].files).not.toContain('.kew/sample')
   })
 })
 

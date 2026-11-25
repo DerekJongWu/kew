@@ -110,9 +110,8 @@ export class Vault implements VaultApi {
         if (!r.error) v.lastValid = r.schema
       }
       v.loadSchemaFile()
-      const empty = RECORD_TYPES.every((t) => index.list(t).length === 0)
-      if (empty) await v.rebuild()
-      else await v.syncIndex()
+      // Always a full rebuild: it picks up notes edited, added or removed while the app was closed.
+      await v.rebuild()
     } catch (e) {
       v.close()
       throw e

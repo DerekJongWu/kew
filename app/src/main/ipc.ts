@@ -73,14 +73,8 @@ export function buildHandlers(
   }
   const open = async (root: string): Promise<VaultInfo> => {
     // Open the new vault first: if it fails, the current vault stays open and usable.
+    // Vault.open rebuilds the index, picking up hand edits made while the app was closed.
     const v = await Vault.open(root, vaultDataDir(deps.userData, root), { today: deps.today })
-    try {
-      // Pick up hand edits made while the app was closed.
-      await v.rebuildIndex()
-    } catch (e) {
-      v.close()
-      throw e
-    }
     closeCurrentVault(getVault, setVault, deps)
     setVault(v)
     rememberVault(deps.userData, root)

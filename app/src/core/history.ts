@@ -55,14 +55,27 @@ export class History {
     return h
   }
 
-  /** Every file in the vault, skipping dot entries other than `.kew`. */
+  /**
+   * What the initial snapshot holds: every note (`*.md`) and the `.kew/*.yaml` settings, skipping
+   * other dot entries. Attachments (PDFs, images, video) are left out so a big vault opens fast
+   * and the history stays small; commitExternal records any of them the first time an action
+   * touches it.
+   */
   private async scanVault(rel: string): Promise<string[]> {
     const out: string[] = []
     for (const d of await fsp.readdir(join(this.root, rel), { withFileTypes: true })) {
-      if (d.name.startsWith('.') && !(rel === '' && d.name === '.kew')) continue
       const p = rel ? `${rel}/${d.name}` : d.name
+      if (rel === '' && d.name === '.kew') {
+        if (d.isDirectory()) {
+          for (const k of await fsp.readdir(join(this.root, p), { withFileTypes: true })) {
+            if (k.isFile() && /\.yaml$/i.test(k.name)) out.push(`${p}/${k.name}`)
+          }
+        }
+        continue
+      }
+      if (d.name.startsWith('.')) continue
       if (d.isDirectory()) out.push(...(await this.scanVault(p)))
-      else if (d.isFile()) out.push(p)
+      else if (d.isFile() && /\.md$/i.test(d.name)) out.push(p)
     }
     return out
   }
