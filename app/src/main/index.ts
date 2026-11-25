@@ -18,6 +18,7 @@ import { watchVault, type VaultWatcher } from './watcher'
 import { CHANGED_CHANNEL, FLUSH_CHANNEL, FLUSHED_CHANNEL } from '../shared/methods'
 import { createCloseGuard, requestFlush } from './flush'
 import type { Vault } from '../core/vault'
+import { lockNavigation } from './navigation'
 
 // Test harnesses set KEW_HOME so the sample/new vault lands in a temp folder; they read this line
 // to confirm the build honours it before touching anything.
@@ -120,6 +121,8 @@ function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
+
+  lockNavigation(mainWindow.webContents)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     if (details.url.startsWith('https:')) shell.openExternal(details.url)
