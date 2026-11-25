@@ -520,6 +520,123 @@ async function fixes(win) {
   log('rename no-id note: file has id:', /^id: \w{26}$/m.test(readAny('Companies', 'Handmade Two')), '| page title:', await js(win, `document.querySelector('.record-title')?.value`), '| deleted message:', await js(win, `!!document.querySelector('.empty-title') && document.querySelector('.empty-title').textContent.includes('deleted')`))
 }
 
+/** Type into an input like a user: focus, select all, insert text. */
+const typeInto = async (win, selector, text) => {
+  await js(win, `(() => { const i = document.querySelector(${JSON.stringify(selector)}); i.focus(); i.select() })()`)
+  win.webContents.insertText(text)
+  await sleep(150)
+}
+const schemaText = () => readFileSync(join(vaultDir, '.kew/schema.yaml'), 'utf8')
+const countNotes = (re) => {
+  const dir = join(vaultDir, 'Companies')
+  return readdirSync(dir).filter((f) => re.test(readFileSync(join(dir, f), 'utf8'))).length
+}
+
+/** Settings: fields editor (rename a stage, custom field lifecycle) and the vault tab. */
+async function settings(win) {
+  key(win, ',', ['meta'])
+  await waitFor(win, '.ftable')
+  await sleep(500)
+  win.focus()
+  await shot(win, 'settings-fields-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'settings-fields-dark.png')
+  nativeTheme.themeSource = 'light'
+
+  await clickText(win, '.ftable-name', 'Pipeline status')
+  await waitFor(win, '.opt-row')
+  await shot(win, 'settings-field-edit-light.png')
+
+  // Rename the stage value no-reply -> ghosted: notes, board and Today follow; undo restores.
+  const before = countNotes(/^pipeline_status: no-reply$/m)
+  await js(win, `(() => { const i = document.querySelector('[aria-label="Saved value for No reply"]'); i.focus(); i.select() })()`)
+  win.webContents.insertText('ghosted')
+  await sleep(500)
+  log('dbg:', await js(win, `[...document.querySelectorAll('.opt-row')].map((r) => [...r.querySelectorAll('input')].map((i) => i.value + (i.getAttribute('aria-invalid') ? '!' : '')).join('/')).join(' ; ')`))
+  log('save btn:', await js(win, `(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'Save changes'); return b ? 'disabled=' + b.disabled + ' val=' + document.querySelector('[aria-label="Saved value for No reply"]')?.value + ' err=' + document.querySelector('.field-panel .row-error')?.textContent : 'none' })()`))
+  await clickText(win, 'button', 'Save changes')
+  await sleep(1200)
+  log('after save err:', await js(win, `document.querySelector('.field-panel .row-error')?.textContent`))
+  log('rename stage: notes with no-reply before:', before, '| after:', countNotes(/^pipeline_status: no-reply$/m), '| ghosted:', countNotes(/^pipeline_status: ghosted$/m), '| schema has ghosted:', /value: ghosted/.test(schemaText()))
+  key(win, '2', ['meta'])
+  await waitFor(win, '.board .card, .board .col')
+  await sleep(500)
+  log('board column labels:', await js(win, `[...document.querySelectorAll('.col')].map((c) => c.getAttribute('aria-label')).join(' | ')`))
+  key(win, '1', ['meta'])
+  await waitFor(win, '.today-grid .row')
+  log('today still renders rows:', await js(win, `document.querySelectorAll('.today-grid .row').length`))
+  key(win, ',', ['meta'])
+  await waitFor(win, '.ftable')
+  await clickText(win, '.tab', 'Vault and history')
+  await waitFor(win, '.history-full-row')
+  await sleep(500)
+  await shot(win, 'settings-vault-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'settings-vault-dark.png')
+  nativeTheme.themeSource = 'light'
+  log('history rows:', await js(win, `[...document.querySelectorAll('.history-full-row')].slice(0, 3).map((r) => r.textContent).join(' || ')`))
+  await js(win, `document.querySelector('.history-full-row .btn')?.click()`)
+  await sleep(1200)
+  log('undo from Settings: no-reply restored:', countNotes(/^pipeline_status: no-reply$/m) === before, '| schema restored:', !/value: ghosted/.test(schemaText()))
+
+  // Custom field: add, rename key, delete with the count in the confirmation.
+  await clickText(win, '.tab', 'Fields')
+  await waitFor(win, '.ftable')
+  await clickText(win, 'button', '+ Add field')
+  await waitFor(win, '[role="dialog"] input')
+  await typeInto(win, '[role="dialog"] input', 'Cheque size')
+  await clickText(win, '[role="dialog"] button', 'Add property')
+  await sleep(1000)
+  log('custom field added:', /key: cheque_size/.test(schemaText()))
+  await clickText(win, '.ftable-name', 'Cheque size')
+  await waitFor(win, '[aria-label="Edit Cheque size"]')
+  // Give two notes a value so the delete count is real.
+  const [a, b] = (await js(win, `window.kew.list('company')`)).value.slice(0, 2)
+  for (const r of [a, b]) await js(win, `window.kew.setFields(${JSON.stringify(r.id)}, { cheque_size: '2M' })`)
+  await sleep(800)
+  await typeInto(win, '[aria-label="Edit Cheque size"] input[id$="-key"]', 'Bad Key!')
+  log('invalid key message:', await js(win, `document.querySelector('[aria-label="Edit Cheque size"] .form-error')?.textContent`))
+  await typeInto(win, '[aria-label="Edit Cheque size"] input[id$="-key"]', 'cheque')
+  await clickText(win, 'button', 'Rename key')
+  await sleep(1200)
+  log('key renamed in schema:', /key: cheque\n/.test(schemaText()), '| notes with cheque:', countNotes(/^cheque: /m), '| cheque_size left:', countNotes(/^cheque_size: /m))
+  await waitFor(win, '[aria-label^="Edit"]')
+  await clickText(win, 'button', 'Delete field…')
+  await waitFor(win, '[role="dialog"]')
+  await sleep(300)
+  await shot(win, 'settings-delete-confirm-light.png')
+  log('confirm text:', await js(win, `document.querySelector('[role="dialog"] .confirm-text').textContent`))
+  await clickText(win, '[role="dialog"] button', 'Delete field')
+  await sleep(1200)
+  log('deleted: in schema:', /key: cheque\n/.test(schemaText()), '| notes still with cheque:', countNotes(/^cheque: /m))
+  // Undo the delete from History, then the rename and add, leaving the vault as it was.
+  for (let i = 0; i < 5; i++) {
+    const h = (await js(win, 'window.kew.history(10)')).value.filter((e) => e.kind === 'action' && e.undoable)
+    if (!h[0] || !/field|Cheque|cheque/i.test(h[0].message + h[0].files.join())) break
+    await js(win, `window.kew.undo(${JSON.stringify(h[0].id)})`)
+    await sleep(600)
+  }
+
+  // Rebuild index.
+  await clickText(win, '.tab', 'Vault and history')
+  await waitFor(win, '.vault-card')
+  await clickText(win, 'button', 'Rebuild index')
+  await sleep(1200)
+  log('rebuild message:', await js(win, `document.querySelector('.vault-card [role="status"]').textContent`))
+
+  // Switch vault through onboarding and back.
+  const other = join(tmp, 'Other Vault')
+  await js(win, `window.kew.createVault('empty', ${JSON.stringify(other)})`)
+  await sleep(600)
+  await clickText(win, 'button', 'Switch vault…')
+  await waitFor(win, '.onboarding .path, .recent-row')
+  await sleep(500)
+  const opened = await js(win, `(() => { const row = [...document.querySelectorAll('.recent-row')].find((r) => r.textContent.includes('Kew Sample')); const b = row && row.querySelector('button'); if (!b) return false; b.click(); return true })()`)
+  await waitFor(win, '.today-grid')
+  await sleep(800)
+  log('switched back via onboarding:', opened, '| vault now:', (await js(win, 'window.kew.getState()')).value.vault.name)
+}
+
 /** Last: close the window inside the autosave window; the close waits for the save. */
 async function closeFlush(win) {
   await openRecord(win, 'Mara Quintero')
@@ -607,6 +724,7 @@ async function main() {
   await lists(win)
   await records(win)
   await fixes(win)
+  await settings(win)
 
   key(win, 'K', ['meta'])
   await waitFor(win, '.cmdk-input')

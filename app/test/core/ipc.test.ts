@@ -40,10 +40,12 @@ const ALL_KEYS = [
   'passCompany',
   'snooze',
   'changeSchema',
+  'affectedCount',
   'saveViews',
   'undo',
   'rebuildIndex',
-  'openInFinder'
+  'openInFinder',
+  'revealVault'
 ] as const satisfies readonly Exclude<keyof KewApi, 'onChanged'>[]
 
 let tmp: string
@@ -139,6 +141,9 @@ describe('integration through handlers', () => {
     const r = await h.logOutreach(person.id, { dir: 'out', channel: 'email', text: 'Hello there' })
     expect((await h.history()).map((e) => e.id)).toContain(r.entry.id)
     await h.openInFinder(person.id)
+    await h.revealVault()
+    expect(shown[1]).toBe(root)
+    shown.pop()
     expect(shown).toHaveLength(1)
     expect(shown[0].endsWith(person.path)).toBe(true)
     expect((await h.getState()).recent).toEqual([{ root, exists: true }])

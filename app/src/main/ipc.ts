@@ -140,13 +140,15 @@ export function buildHandlers(
     passCompany: (id, r) => track(need().passCompany(id, r)),
     snooze: (id, u) => track(need().snooze(id, u)),
     changeSchema: (c) => track(need().changeSchema(c)),
+    affectedCount: async (c) => need().affectedCount(c),
     saveViews: (v) => track(need().saveViews(v)),
     undo: (id) => track(need().undo(id)),
     rebuildIndex: () => need().rebuildIndex(),
     openInFinder: async (id) => {
       const p = need().pathOf(id)
       if (p) deps.showInFolder(p)
-    }
+    },
+    revealVault: async () => deps.showInFolder(need().root)
   } satisfies Handlers
   // Make synchronous throws (NoVaultError) surface as rejections like every other failure.
   return Object.fromEntries(

@@ -66,10 +66,12 @@ export interface KewApi {
   passCompany(id: string, reason: string): Promise<ActionResult>
   snooze(id: string, until: string): Promise<ActionResult>          // person: next_follow_up; company: reach_out_on
   changeSchema(change: SchemaChange): Promise<ActionResult>
+  affectedCount(change: SchemaChange): Promise<number>               // notes a schema change would rewrite
   saveViews(views: ViewDef[]): Promise<ActionResult>
   undo(entryId: string): Promise<ActionResult>
   rebuildIndex(): Promise<void>
   openInFinder(id: string): Promise<void>
+  revealVault(): Promise<void>                                       // show the vault folder in Finder
   // events
   onChanged(cb: (changedIds: string[]) => void): () => void
   onMenuUndo(cb: () => void): () => void                              // Edit > Undo / ⌘Z from the app menu

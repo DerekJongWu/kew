@@ -25,10 +25,12 @@ export const KEW_METHODS = [
   'passCompany',
   'snooze',
   'changeSchema',
+  'affectedCount',
   'saveViews',
   'undo',
   'rebuildIndex',
-  'openInFinder'
+  'openInFinder',
+  'revealVault'
 ] as const satisfies readonly InvokeMethod[]
 
 /** Compile-time exhaustiveness: errors if a KewApi method is missing from KEW_METHODS. */

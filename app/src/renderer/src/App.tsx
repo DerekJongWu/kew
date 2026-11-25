@@ -18,6 +18,8 @@ import { NewRecordDialog } from './components/NewRecordDialog'
 import type { RecordType } from '../../shared/api'
 import { Placeholder } from './screens/Placeholder'
 import { Onboarding } from './screens/Onboarding'
+import { SettingsFields } from './screens/SettingsFields'
+import { SettingsVault } from './screens/SettingsVault'
 
 /** ⌘Z (Edit > Undo in the app menu): undo the newest action. Failures land in the status line in plain words. */
 async function undoLast(): Promise<void> {
@@ -130,6 +132,12 @@ function App(): React.JSX.Element {
             <RecordList key={route.type} type={route.type} />
           ) : route.name === 'record' ? (
             <RecordPage key={route.id} id={route.id} />
+          ) : route.name === 'settings' ? (
+            route.tab === 'vault' ? (
+              <SettingsVault />
+            ) : (
+              <SettingsFields />
+            )
           ) : (
             <Placeholder key={JSON.stringify(route)} route={route} />
           )}
