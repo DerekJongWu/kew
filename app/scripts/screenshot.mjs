@@ -265,6 +265,57 @@ async function lists(win) {
   await sleep(300)
 }
 
+async function search(win) {
+  // ⌘K → "Search notes for …" finds a word that only appears in note bodies.
+  key(win, 'K', ['meta'])
+  await waitFor(win, '.cmdk-input')
+  win.webContents.insertText('deck')
+  await waitFor(win, '[cmdk-item][data-value="search-notes"]')
+  await sleep(600)
+  log('cmdk items:', await js(win, `[...document.querySelectorAll('.cmdk [cmdk-item]')].map((e) => e.textContent).slice(0, 4).join(' | ')`))
+  log('cmdk highlighted:', await js(win, `document.querySelector('.cmdk [cmdk-item][data-selected=true]').textContent`))
+  await clickText(win, '.cmdk [cmdk-item] .cmdk-label', 'Search notes for “deck”')
+  await waitFor(win, '.search-hit')
+  await sleep(500)
+  log('search input:', await js(win, `document.activeElement.id + ' = ' + document.activeElement.value`))
+  log('count:', await js(win, `document.querySelector('.search-count').textContent`))
+  const first = await js(win, `document.querySelector('.search-hit .search-name').textContent`)
+  log('first result:', first, '| marks:', await js(win, `[...document.querySelectorAll('.search-hit mark')].slice(0, 3).map((m) => m.textContent).join(',')`))
+  log('snippet has no raw markers:', await js(win, `!/[«»]/.test(document.querySelector('.search-results').textContent)`))
+  win.focus()
+  await shot(win, 'search-light.png')
+  nativeTheme.themeSource = 'dark'
+  await shot(win, 'search-dark.png')
+  nativeTheme.themeSource = 'light'
+
+  // Arrow keys move the highlight; Enter opens it; back returns to the results.
+  key(win, 'Down')
+  await sleep(200)
+  const second = await js(win, `document.querySelector('.search-hit[data-active=true] .search-name').textContent`)
+  log('after ArrowDown active:', second)
+  key(win, 'Return')
+  await waitFor(win, '.record .props')
+  log('Enter opened record:', await js(win, `document.querySelector('.record-title').value`))
+  key(win, '[', ['meta'])
+  await waitFor(win, '.search-hit')
+  log('back shows results for:', await js(win, `document.querySelector('#search-input').value`), await js(win, `document.querySelector('.search-count').textContent`))
+
+  // Typing updates the query (debounced) and the route; ⌘⇧F refocuses the input.
+  await js(win, `document.querySelector('#search-input').select()`)
+  win.webContents.insertText('zzqqnothing')
+  await waitFor(win, '.search .empty-title')
+  log('empty state:', await js(win, `document.querySelector('.search .empty-title').textContent`))
+  await shot(win, 'search-empty-light.png')
+  key(win, '3', ['meta'])
+  await waitFor(win, '.dtable-body')
+  key(win, 'F', ['meta', 'shift'])
+  await waitFor(win, '#search-input')
+  await sleep(300)
+  log('⌘⇧F focused input:', await js(win, `document.activeElement.id`), '| q kept:', await js(win, `document.activeElement.value`))
+  key(win, '3', ['meta'])
+  await waitFor(win, '.dtable-body')
+}
+
 const readAny = (folder, name) => readFileSync(join(vaultDir, folder, name + '.md'), 'utf8')
 const writeAny = (folder, name, text) => writeFileSync(join(vaultDir, folder, name + '.md'), text)
 const historyTop = async (win, n = 1) => (await js(win, `window.kew.history(${n})`)).value
@@ -725,6 +776,7 @@ async function main() {
   await records(win)
   await fixes(win)
   await settings(win)
+  await search(win)
 
   key(win, 'K', ['meta'])
   await waitFor(win, '.cmdk-input')

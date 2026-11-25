@@ -9,6 +9,9 @@ export interface SelectionInput {
   q: string
 }
 
+/** The id of the "Search notes for …" item, shown after the record hits whenever the query is non-empty. */
+export const SEARCH_ITEM = 'search-notes'
+
 /** The item Return should act on when the user hasn't moved the highlight. */
 export function defaultSelection(s: SelectionInput): string {
   if (s.creating) {
@@ -16,7 +19,8 @@ export function defaultSelection(s: SelectionInput): string {
     return s.q.trim() ? 'create' : ''
   }
   if (s.hits.length) return `rec-${s.hits[0].record.id}`
-  return s.commands[0]?.id ?? ''
+  // Records win, then a matching command; with neither, Return runs the full-text search.
+  return s.commands[0]?.id ?? (s.q.trim() ? SEARCH_ITEM : '')
 }
 
 /** Changes whenever the item list changes; a user's pick only holds for the list it was made on. */

@@ -124,6 +124,20 @@ describe('search and duplicates', () => {
     expect(idx.search('!!!', 5)).toEqual([])
   })
 
+  it('ranks exact and prefix name matches, then name-contains, then body-only matches', () => {
+    const local = openIndex(':memory:')
+    local.indexFile('Meetings/2026-01-05 Orchard Signal intro.md', '---\ntype: meeting\nname: 2026-01-05 Orchard Signal intro\n---\norchard orchard orchard orchard\n', schema)
+    local.indexFile('Companies/Old Orchard Co.md', '---\ntype: company\nname: Old Orchard Co\n---\n', schema)
+    local.indexFile('Research/Fruit.md', '---\ntype: research\nname: Fruit\n---\nOrchard yields.\n', schema)
+    local.indexFile('Companies/Orchard Signal.md', '---\ntype: company\nname: Orchard Signal\n---\nSignal startup.\n', schema)
+    local.indexFile('Companies/Orchard.md', '---\ntype: company\nname: Orchard\n---\n', schema)
+    const found = names(local.search('orchard').map((h) => h.record))
+    expect(found.slice(0, 2)).toEqual(['Orchard', 'Orchard Signal'])
+    expect(found.slice(2, 4).sort()).toEqual(['2026-01-05 Orchard Signal intro', 'Old Orchard Co'])
+    expect(found[4]).toBe('Fruit')
+    expect(names(local.search('orchard', 2).map((h) => h.record))).toEqual(['Orchard', 'Orchard Signal'])
+  })
+
   it('finds duplicates by name, alias, domain and linkedin', () => {
     const d = idx.findDuplicates('company', 'Quill Security Inc', { website: 'https://www.quill.example' })
     expect(d.map((x) => [x.record.name, x.reason])).toEqual([['Quill Security', 'name']])

@@ -20,9 +20,21 @@ describe('defaultSelection', () => {
     expect(
       defaultSelection({ creating: false, dupes: null, hits: [], commands: cmds, q: 'go' })
     ).toBe('new-company')
+    expect(defaultSelection({ creating: false, dupes: null, hits: [], commands: [], q: '' })).toBe(
+      ''
+    )
+  })
+  it('falls back to Search notes when nothing else matches the query', () => {
     expect(
       defaultSelection({ creating: false, dupes: null, hits: [], commands: [], q: 'zz' })
-    ).toBe('')
+    ).toBe('search-notes')
+    // a record hit or a matching command still wins over the search item
+    expect(
+      defaultSelection({ creating: false, dupes: null, hits: [hit('A')], commands: [], q: 'zz' })
+    ).toBe('rec-A')
+    expect(
+      defaultSelection({ creating: false, dupes: null, hits: [], commands: cmds, q: 'go' })
+    ).toBe('new-company')
   })
   it('in the name prompt, picks the first duplicate, else Create', () => {
     expect(

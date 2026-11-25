@@ -16,6 +16,7 @@ import { RecordList } from './screens/RecordList'
 import { RecordPage } from './screens/RecordPage'
 import { NewRecordDialog } from './components/NewRecordDialog'
 import type { RecordType } from '../../shared/api'
+import { Search, FOCUS_SEARCH } from './screens/Search'
 import { Placeholder } from './screens/Placeholder'
 import { Onboarding } from './screens/Onboarding'
 import { SettingsFields } from './screens/SettingsFields'
@@ -44,7 +45,12 @@ function App(): React.JSX.Element {
       if (e.defaultPrevented || !e.metaKey || e.altKey || e.ctrlKey) return
       const key = e.key.toLowerCase()
       const nav = [...DESTINATIONS, SETTINGS].find((d) => d.shortcut === key)
-      if (key === 'k') {
+      if (key === 'f' && e.shiftKey) {
+        // ⌘⇧F: open search (or refocus it) unless the command bar or a dialog has the floor.
+        if (commandOpen || document.querySelector('[role="dialog"][aria-modal="true"]')) return
+        router.navigate({ name: 'search', q: route.name === 'search' ? route.q : '' })
+        window.dispatchEvent(new Event(FOCUS_SEARCH))
+      } else if (key === 'k') {
         // Don't open the bar over a modal dialog (closing it is always fine).
         if (!commandOpen && document.querySelector('[role="dialog"][aria-modal="true"]')) return
         setCommandOpen((o) => !o)
@@ -54,7 +60,7 @@ function App(): React.JSX.Element {
       else return
       e.preventDefault()
     },
-    [commandOpen]
+    [commandOpen, route]
   )
   // Edit > Undo: undo typing in a text field, otherwise the latest vault change.
   useEffect(
@@ -132,6 +138,8 @@ function App(): React.JSX.Element {
             <RecordList key={route.type} type={route.type} />
           ) : route.name === 'record' ? (
             <RecordPage key={route.id} id={route.id} />
+          ) : route.name === 'search' ? (
+            <Search q={route.q} />
           ) : route.name === 'settings' ? (
             route.tab === 'vault' ? (
               <SettingsVault />

@@ -233,9 +233,15 @@ export function search(db: Db, text: string, limit = 20): SearchHit[] {
   const terms = text.match(/[\p{L}\p{N}]+/gu) ?? []
   if (terms.length === 0) return []
   const match = terms.map((t) => `"${t}"*`).join(' ')
+  // Name matches first (exact, prefix, contains), then body-only matches; FTS rank breaks ties.
+  // The terms are letters and digits only, so they are safe inside LIKE.
+  const phrase = terms.join(' ').toLowerCase()
   const rows = db.all<RecRow & { snip: string }>(
     `SELECT r.*, snippet(fts, -1, '«', '»', '…', 12) AS snip FROM fts JOIN records r ON r.rowid = fts.rowid
-     WHERE fts MATCH ? ORDER BY rank LIMIT ?`, match, limit)
+     WHERE fts MATCH ?
+     ORDER BY CASE WHEN lower(r.name) = ? THEN 0 WHEN lower(r.name) LIKE ? THEN 1
+                   WHEN lower(r.name) LIKE ? THEN 2 ELSE 3 END, rank LIMIT ?`,
+    match, phrase, `${phrase}%`, `%${phrase}%`, limit)
   const sum = summarizer(db)
   return rows.map((r) => ({ record: sum(r), snippet: r.snip }))
 }
