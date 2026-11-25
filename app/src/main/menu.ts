@@ -1,7 +1,8 @@
 // The macOS application menu. Edit > Undo is not the 'undo' role: it asks the renderer, which
-// undoes typing in a text field or, elsewhere, the latest vault change.
+// undoes typing in a text field or, elsewhere, the latest vault change. Edit > Redo only redoes
+// typing: a vault change is "redone" by undoing its undo entry.
 import type { BrowserWindow, MenuItemConstructorOptions } from 'electron'
-import { MENU_UNDO_CHANNEL } from '../shared/methods'
+import { MENU_REDO_CHANNEL, MENU_UNDO_CHANNEL } from '../shared/methods'
 
 export function menuTemplate({ dev }: { dev: boolean }): MenuItemConstructorOptions[] {
   return [
@@ -26,7 +27,12 @@ export function menuTemplate({ dev }: { dev: boolean }): MenuItemConstructorOpti
           click: (_item, win) =>
             (win as BrowserWindow | undefined)?.webContents.send(MENU_UNDO_CHANNEL)
         },
-        { role: 'redo' },
+        {
+          label: 'Redo',
+          accelerator: 'CmdOrCtrl+Shift+Z',
+          click: (_item, win) =>
+            (win as BrowserWindow | undefined)?.webContents.send(MENU_REDO_CHANNEL)
+        },
         { type: 'separator' },
         { role: 'cut' },
         { role: 'copy' },

@@ -12,7 +12,7 @@ import {
   type DecorationSet,
   type ViewUpdate
 } from '@codemirror/view'
-import { history, undo } from '@codemirror/commands'
+import { history, redo, undo } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import {
@@ -104,10 +104,19 @@ async function completeLinks(ctx: CompletionContext): Promise<CompletionResult |
  * native undo doesn't reach CodeMirror). Returns false when focus isn't in an editor.
  */
 export function undoInEditor(el: Element | null): boolean {
+  return runInEditor(el, undo)
+}
+
+/** Edit > Redo in the focused note editor; false when focus isn't in one. */
+export function redoInEditor(el: Element | null): boolean {
+  return runInEditor(el, redo)
+}
+
+function runInEditor(el: Element | null, command: (view: EditorView) => boolean): boolean {
   const host = el?.closest('.cm-editor')
   const view = host instanceof HTMLElement ? EditorView.findFromDOM(host) : null
   if (!view) return false
-  undo(view)
+  command(view)
   return true
 }
 

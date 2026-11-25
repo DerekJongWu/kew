@@ -3,6 +3,7 @@ import {
   KEW_METHODS,
   CHANGED_CHANNEL,
   MENU_UNDO_CHANNEL,
+  MENU_REDO_CHANNEL,
   FLUSH_CHANNEL,
   FLUSHED_CHANNEL,
   type Envelope,
@@ -24,6 +25,11 @@ const kew = {
     const listener = (): void => cb()
     ipcRenderer.on(MENU_UNDO_CHANNEL, listener)
     return () => ipcRenderer.removeListener(MENU_UNDO_CHANNEL, listener)
+  },
+  onMenuRedo(cb: () => void): () => void {
+    const listener = (): void => cb()
+    ipcRenderer.on(MENU_REDO_CHANNEL, listener)
+    return () => ipcRenderer.removeListener(MENU_REDO_CHANNEL, listener)
   },
   onFlush(cb: () => Promise<void>): () => void {
     // Always ack, even if saving failed, so the window can still close.

@@ -15,6 +15,7 @@ export function wrapBridge(bridge: KewBridge): KewApi {
   const api = {
     onChanged: bridge.onChanged,
     onMenuUndo: bridge.onMenuUndo,
+    onMenuRedo: bridge.onMenuRedo,
     onFlush: bridge.onFlush
   } as KewApi
   for (const m of KEW_METHODS) {

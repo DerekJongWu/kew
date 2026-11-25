@@ -148,7 +148,8 @@ app.whenReady().then(() => {
 
   const handlers = registerIpc(ipcMain, () => vault, setVault, {
     userData: app.getPath('userData'),
-    home: app.getPath('home'),
+    // KEW_HOME lets the packaged-app smoke test keep Documents/Kew Sample out of the real home folder.
+    home: process.env.KEW_HOME ?? app.getPath('home'),
     today,
     chooseFolder: async () => {
       const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })

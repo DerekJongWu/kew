@@ -3,7 +3,7 @@ import { kew, useQuery } from './api'
 import { router, useRoute } from './router'
 import { latestUndoable, plainError, status } from './lib/actions'
 import { isEditable } from './lib/editable'
-import { undoInEditor } from './lib/note-editor'
+import { redoInEditor, undoInEditor } from './lib/note-editor'
 import { flushes } from './lib/flush'
 import { Button } from './components/Button'
 import { DESTINATIONS, SETTINGS } from './lib/destinations'
@@ -69,6 +69,15 @@ function App(): React.JSX.Element {
         if (undoInEditor(document.activeElement)) return
         if (isEditable(document.activeElement as HTMLElement | null)) document.execCommand('undo')
         else void undoLast()
+      }),
+    []
+  )
+  // Edit > Redo: redo typing only. A vault change has no redo; undoing its undo entry does that.
+  useEffect(
+    () =>
+      kew.onMenuRedo(() => {
+        if (redoInEditor(document.activeElement)) return
+        if (isEditable(document.activeElement as HTMLElement | null)) document.execCommand('redo')
       }),
     []
   )
