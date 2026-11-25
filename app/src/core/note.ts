@@ -48,7 +48,7 @@ function blockEnd(lines: string[], idx: number, end: number): number {
 }
 
 // Edits must never leave frontmatter that no longer parses.
-function checkedAfter(before: string, after: string): string {
+export function checkedAfter(before: string, after: string): string {
   if (parseNote(before).ok && !parseNote(after).ok) {
     throw new NoteParseError('edit would leave unparseable frontmatter: ' + parseNote(after).error)
   }
@@ -63,13 +63,17 @@ function toFieldValue(v: unknown): FieldValue {
   return JSON.stringify(v)
 }
 
+// The frontmatter as YAML parsed it (throws on bad YAML). Assumes fmEnd >= 0.
+const rawYaml = (lines: string[], fmEnd: number): unknown =>
+  parseYaml(lines.slice(1, fmEnd).map(bare).join('\n'), { schema: 'core' }) ?? {}
+
 export function parseNote(text: string): ParsedNote {
   const eol = detectEol(text)
   const { lines, fmEnd } = splitFrontmatter(text)
   if (fmEnd < 0) return { fm: {}, body: text, ok: false, error: 'note has no frontmatter', eol }
   const body = lines.slice(fmEnd + 1).join('\n')
   try {
-    const raw = parseYaml(lines.slice(1, fmEnd).map(bare).join('\n'), { schema: 'core' }) ?? {}
+    const raw = rawYaml(lines, fmEnd)
     if (typeof raw !== 'object' || Array.isArray(raw)) {
       return { fm: {}, body, ok: false, error: 'frontmatter is not a mapping', eol }
     }
@@ -151,6 +155,41 @@ export function setKeys(text: string, changes: Record<string, FieldValue | undef
     }
     return checkedAfter(text, lines.join('\n'))
   }
+}
+
+const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
+
+// Rewrite top-level string values and string-list items with fn (nested values are left
+// alone). A changed key keeps its own lines when rewriting them in place still reads back
+// as the rewritten value; otherwise (say, a quote character landed inside a quoted value)
+// that key is re-serialized with setKeys. Other keys and the body are untouched.
+export function rewriteFrontmatterStrings(text: string, fn: (s: string) => string): string {
+  const { lines, fmEnd } = requireFrontmatter(text)
+  const raw = rawYaml(lines, fmEnd) as Record<string, unknown>
+  let out = text
+  for (const [key, v] of Object.entries(raw)) {
+    let want: string | string[]
+    if (typeof v === 'string') want = fn(v)
+    else if (Array.isArray(v) && v.every((x) => typeof x === 'string')) want = v.map(fn)
+    else continue
+    if (sameValue(want, v)) continue
+    const cur = splitFrontmatter(out)
+    const idx = cur.lines.findIndex((l, i) => i > 0 && i < cur.fmEnd && l.startsWith(key + ':'))
+    if (idx < 0) continue
+    const end = blockEnd(cur.lines, idx, cur.fmEnd)
+    const inPlace = [...cur.lines]
+    for (let i = idx; i < end; i++) inPlace[i] = fn(inPlace[i])
+    const candidate = inPlace.join('\n')
+    const back = splitFrontmatter(candidate)
+    let ok = false
+    try {
+      ok = sameValue((rawYaml(back.lines, back.fmEnd) as Record<string, unknown>)[key], want)
+    } catch {
+      ok = false
+    }
+    out = ok ? candidate : setKeys(out, { [key]: want })
+  }
+  return checkedAfter(text, out)
 }
 
 // Replace everything after the frontmatter.

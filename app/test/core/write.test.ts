@@ -8,6 +8,7 @@ import { loadSchema } from '../../src/core/schema/load'
 import { ValidationError } from '../../src/core/schema/validate'
 import { applyAction, undoAction, ConflictError, type Ctx } from '../../src/core/write/apply'
 import { createRecord, setFields, setBody, rename } from '../../src/core/write/records'
+import { parseNote } from '../../src/core/note'
 import type { ActionResult, DuplicateHit } from '../../src/shared/api'
 
 const FIXTURE = join(__dirname, '../fixtures/vaults/basic')
@@ -304,6 +305,58 @@ describe('rename', () => {
     expect(r.entry.files).toContain(loose)
     await undoAction(ctx, r.entry.id)
     expect(read(loose)).toBe(original)
+  })
+
+  it('re-quotes frontmatter links when the new name has an apostrophe; every note still parses', async () => {
+    const created = await createRecord(ctx, 'person', 'Pat Obrien')
+    if (!isResult(created)) throw new Error('expected a record')
+    const patId = created.changedIds[0]
+    const meeting = 'Meetings/2026-11-01 Pat sync.md'
+    const loose = 'Scratch/Pat.md'
+    await fsp.writeFile(
+      join(vault, meeting),
+      [
+        '---',
+        'type: meeting',
+        'name: 2026-11-01 Pat sync',
+        "attendees: ['[[Pat Obrien]]', '[[Sam Okafor]]'] # who came",
+        'host:',
+        "  - '[[Pat Obrien]]'",
+        'owner: "[[Pat Obrien]]"',
+        "note: 'keep me'",
+        '---',
+        'Met [[Pat Obrien|Pat]] today.',
+        ''
+      ].join('\n')
+    )
+    await fsp.writeFile(join(vault, loose), 'Ask [[Pat Obrien]].\n')
+    idx.indexFile(meeting, read(meeting), schema)
+
+    await rename(ctx, patId, "Pat O'Brien")
+
+    const text = read(meeting)
+    expect(text).toBe(
+      [
+        '---',
+        'type: meeting',
+        'name: 2026-11-01 Pat sync',
+        "attendees: ['[[Pat O''Brien]]', '[[Sam Okafor]]']",
+        "host: ['[[Pat O''Brien]]']",
+        'owner: "[[Pat O\'Brien]]"',
+        "note: 'keep me'",
+        '---',
+        "Met [[Pat O'Brien|Pat]] today.",
+        ''
+      ].join('\n')
+    )
+    const parsed = parseNote(text)
+    expect(parsed.ok).toBe(true)
+    expect(parsed.fm.attendees).toEqual(["[[Pat O'Brien]]", '[[Sam Okafor]]'])
+    expect(parsed.fm.host).toEqual(["[[Pat O'Brien]]"])
+    expect(parsed.fm.owner).toBe("[[Pat O'Brien]]")
+    expect(read(loose)).toBe("Ask [[Pat O'Brien]].\n")
+    expect(parseNote(read("People/Pat O'Brien.md")).ok).toBe(true)
+    expect(idx.backlinks(patId).map((x) => x.name)).toContain('2026-11-01 Pat sync')
   })
 
   it('rejects bad names and case-only renames, changing nothing', async () => {

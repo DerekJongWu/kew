@@ -2,7 +2,14 @@
 import { existsSync, promises as fsp } from 'node:fs'
 import { join } from 'node:path'
 import { applyAction, type Ctx, type FileEdit } from './apply'
-import { newNote, parseNote, setKeys, setBody as setNoteBody } from '../note'
+import {
+  checkedAfter,
+  newNote,
+  parseNote,
+  rewriteFrontmatterStrings,
+  setKeys,
+  setBody as setNoteBody
+} from '../note'
 import { safeFilename, uniqueName } from '../names'
 import { nameProblem } from '../../shared/names'
 import { newId } from '../ids'
@@ -187,6 +194,19 @@ export async function setBody(ctx: Ctx, id: string, body: string): Promise<Actio
   ])
 }
 
+/**
+ * Point a note's links at a new name. Frontmatter values are rewritten key by key, so a name
+ * with a quote character gets re-quoted instead of breaking the YAML; the body is plain text.
+ * A note whose frontmatter didn't parse before is rewritten as text (nothing to keep valid).
+ */
+function relinkNote(text: string, from: string, to: string): string {
+  const fn = (s: string): string => rewriteLinks(s, from, to)
+  if (!parseNote(text).ok) return fn(text)
+  const withFm = rewriteFrontmatterStrings(text, fn)
+  const body = parseNote(withFm).body
+  return checkedAfter(text, withFm.slice(0, withFm.length - body.length) + fn(body))
+}
+
 export async function rename(ctx: Ctx, id: string, newName: string): Promise<ActionResult> {
   const rec = record(ctx, id)
   const name = cleanName(freeName(ctx, rec.type, cleanName(newName), companyOf(rec.fields), rec))
@@ -194,7 +214,7 @@ export async function rename(ctx: Ctx, id: string, newName: string): Promise<Act
   if (newPath !== rec.path && newPath.toLowerCase() === rec.path.toLowerCase()) {
     throw new ValidationError("Changing only capitalization isn't supported yet.")
   }
-  const relink = (text: string): string => rewriteLinks(text, rec.name, name)
+  const relink = (text: string): string => relinkNote(text, rec.name, name)
   const assignedId = newId()
   const edits: FileEdit[] = [
     {
