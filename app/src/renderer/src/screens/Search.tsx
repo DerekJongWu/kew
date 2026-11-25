@@ -27,15 +27,16 @@ export function Search({ q }: { q: string }): React.JSX.Element {
     }
   }, [q])
 
-  const submit = (value: string): void => {
+  // Enter pushes a history entry; debounced typing only refines the current one.
+  const submit = (value: string, how: 'navigate' | 'replace' = 'navigate'): void => {
     const next = value.trim()
     if (next === q) return
     sent.current = next
-    router.navigate({ name: 'search', q: next })
+    router[how]({ name: 'search', q: next })
   }
   useEffect(() => {
     if (text.trim() === q) return
-    const t = setTimeout(() => submit(text), DEBOUNCE_MS)
+    const t = setTimeout(() => submit(text, 'replace'), DEBOUNCE_MS)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, q])
@@ -51,11 +52,13 @@ export function Search({ q }: { q: string }): React.JSX.Element {
   }, [])
 
   const { data, error } = useQuery(
-    () => (q ? kew.search(q, SEARCH_LIMIT) : Promise.resolve([])),
+    async () => ({ q, hits: q ? await kew.search(q, SEARCH_LIMIT) : [] }),
     [q]
   )
-  const hits = q ? (data ?? []) : []
-  const settled = text.trim() === q // results on screen answer what the input says
+  // `data` carries the query it answers, which lags behind q right after a change.
+  const fresh = data?.q === q
+  const hits = q && fresh ? data.hits : []
+  const settled = fresh && text.trim() === q // results on screen answer what the input says
   // The highlight resets to the first result whenever a new result list arrives.
   const active = picked && picked.data === data ? picked.i : 0
   const setActive = (f: number | ((a: number) => number)): void =>
@@ -109,7 +112,7 @@ export function Search({ q }: { q: string }): React.JSX.Element {
           Type a word or name. Results include text inside note bodies.
         </EmptyState>
       )}
-      {q && !error && data && hits.length === 0 && (
+      {q && !error && fresh && hits.length === 0 && (
         <EmptyState title={`Nothing matches “${q}”`}>
           Try a shorter word or a different spelling.
         </EmptyState>

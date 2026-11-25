@@ -31,6 +31,14 @@ export function push(n: Nav, r: Route): Nav {
   return { stack: [...n.stack.slice(0, n.index + 1), r], index: n.index + 1 }
 }
 
+/** Swap the current entry for `r` without adding history (a refined query, not a new place). */
+export function replace(n: Nav, r: Route): Nav {
+  if (sameRoute(n.stack[n.index], r)) return n
+  const stack = n.stack.slice()
+  stack[n.index] = r
+  return { ...n, stack }
+}
+
 export const back = (n: Nav): Nav => (n.index > 0 ? { ...n, index: n.index - 1 } : n)
 export const forward = (n: Nav): Nav =>
   n.index < n.stack.length - 1 ? { ...n, index: n.index + 1 } : n
@@ -38,6 +46,7 @@ export const forward = (n: Nav): Nav =>
 export interface Router {
   current(): Route
   navigate(r: Route): void
+  replace(r: Route): void
   back(): void
   forward(): void
   canBack(): boolean
@@ -56,6 +65,7 @@ export function createRouter(): Router {
   return {
     current: () => nav.stack[nav.index],
     navigate: (r) => set(push(nav, r)),
+    replace: (r) => set(replace(nav, r)),
     back: () => set(back(nav)),
     forward: () => set(forward(nav)),
     canBack: () => nav.index > 0,

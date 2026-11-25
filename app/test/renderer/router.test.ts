@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   initialNav,
   push,
+  replace,
   back,
   forward,
   sameRoute,
@@ -75,5 +76,26 @@ describe('createRouter store', () => {
     expect(seen).toEqual([people, today, people])
     expect(r.canBack()).toBe(true)
     expect(r.canForward()).toBe(false)
+  })
+})
+
+describe('replace', () => {
+  it('swaps the current entry so back skips the replaced ones', () => {
+    const r = createRouter()
+    r.navigate({ name: 'search', q: '' })
+    r.replace({ name: 'search', q: 'or' })
+    r.replace({ name: 'search', q: 'orchard' })
+    expect(r.current()).toEqual({ name: 'search', q: 'orchard' })
+    r.back()
+    expect(r.current()).toEqual(today)
+    r.forward()
+    expect(r.current()).toEqual({ name: 'search', q: 'orchard' })
+  })
+  it('keeps forward entries and ignores an identical route', () => {
+    const n = back(push(push(initialNav(), people), rec))
+    const m = replace(n, { name: 'list', type: 'company' })
+    expect(m.stack).toHaveLength(3)
+    expect(m.stack[m.index]).toEqual({ name: 'list', type: 'company' })
+    expect(replace(n, people)).toBe(n)
   })
 })

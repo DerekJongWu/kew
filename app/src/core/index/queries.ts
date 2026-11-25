@@ -237,7 +237,7 @@ export function search(db: Db, text: string, limit = 20): SearchHit[] {
   // The terms are letters and digits only, so they are safe inside LIKE.
   const phrase = terms.join(' ').toLowerCase()
   const rows = db.all<RecRow & { snip: string }>(
-    `SELECT r.*, snippet(fts, -1, '«', '»', '…', 12) AS snip FROM fts JOIN records r ON r.rowid = fts.rowid
+    `SELECT r.*, snippet(fts, -1, char(57344), char(57345), '…', 12) AS snip FROM fts JOIN records r ON r.rowid = fts.rowid
      WHERE fts MATCH ?
      ORDER BY CASE WHEN lower(r.name) = ? THEN 0 WHEN lower(r.name) LIKE ? THEN 1
                    WHEN lower(r.name) LIKE ? THEN 2 ELSE 3 END, rank LIMIT ?`,
