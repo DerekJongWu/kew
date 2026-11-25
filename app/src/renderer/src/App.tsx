@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { kew, useQuery } from './api'
 import { router, useRoute } from './router'
-import { latestUndoable, plainError, status } from './lib/actions'
+import { plainError, status, undoTarget } from './lib/actions'
 import { isEditable } from './lib/editable'
 import { redoInEditor, undoInEditor } from './lib/note-editor'
 import { flushes } from './lib/flush'
@@ -26,9 +26,10 @@ import { SettingsVault } from './screens/SettingsVault'
 async function undoLast(): Promise<void> {
   await status
     .run(async () => {
-      const entry = latestUndoable(await kew.history(20))
-      if (!entry) throw new Error('Nothing to undo.')
-      await kew.undo(entry.id)
+      const target = undoTarget(await kew.history(20))
+      if (!target) throw new Error('Nothing to undo.')
+      if ('reason' in target) throw new Error(target.reason)
+      await kew.undo(target.entry.id)
     })
     .catch(() => undefined)
 }

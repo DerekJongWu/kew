@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { plainError, createStatus, latestUndoable } from '../../src/renderer/src/lib/actions'
+import { plainError, createStatus, undoTarget } from '../../src/renderer/src/lib/actions'
 
 const named = (name: string, message: string): Error => Object.assign(new Error(message), { name })
 
@@ -42,21 +42,49 @@ describe('createStatus', () => {
   })
 })
 
-describe('latestUndoable', () => {
-  it('skips undo entries, external edits and stale actions', () => {
-    const e = (
-      id: string,
-      kind: string,
-      undoable: boolean
-    ): { id: string; kind: string; undoable: boolean } => ({ id, kind, undoable })
+describe('undoTarget', () => {
+  type E = { id: string; kind: string; undoable: boolean; message: string }
+  const e = (id: string, kind: string, undoable: boolean, message = id): E => ({
+    id,
+    kind,
+    undoable,
+    message
+  })
+  const target = (entries: E[]): string | null => {
+    const t = undoTarget(entries)
+    return t === null ? null : 'entry' in t ? t.entry.id : t.reason
+  }
+
+  it('skips external edits and actions already undone, walking back one action per ⌘Z', () => {
     expect(
-      latestUndoable([
-        e('u', 'undo', true),
+      target([
+        e('u', 'undo', true, 'Undid: A'),
         e('x', 'external', false),
-        e('a', 'action', false),
-        e('b', 'action', true)
-      ])?.id
+        e('a', 'action', false, 'A'),
+        e('b', 'action', true, 'B')
+      ])
     ).toBe('b')
-    expect(latestUndoable([e('u', 'undo', true)])).toBeNull()
+    expect(target([e('u', 'undo', true, 'Undid: A'), e('a', 'action', false, 'A')])).toBeNull()
+  })
+
+  it('treats an action whose undo was itself undone as live again', () => {
+    expect(
+      target([
+        e('r', 'undo', true, 'Undid: Undid: A'),
+        e('u', 'undo', false, 'Undid: A'),
+        e('a', 'action', true, 'A'),
+        e('b', 'action', true, 'B')
+      ])
+    ).toBe('a')
+  })
+
+  it('stops at the newest action when it can no longer be undone, instead of undoing an older one', () => {
+    expect(
+      target([
+        e('x', 'external', false),
+        e('a', 'action', false, 'Set Stage on Acme'),
+        e('b', 'action', true)
+      ])
+    ).toBe('Can’t undo “Set Stage on Acme”: its notes changed since.'.replace('’', "'"))
   })
 })

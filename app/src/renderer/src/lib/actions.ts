@@ -54,9 +54,31 @@ export const status = createStatus()
 
 export const useStatus = (): Status => useSyncExternalStore(status.subscribe, status.get)
 
-/** The entry ⌘Z undoes: the newest action whose files still match it (undo entries are skipped). */
-export function latestUndoable<E extends { kind: string; undoable: boolean }>(
+const UNDID = 'Undid: '
+
+/**
+ * What ⌘Z undoes, newest entries first: the newest action that hasn't been undone. Undo entries
+ * cancel the action they undid (matched by message; undoing an undo cancels that undo, so the
+ * action is live again) and external edits are skipped. If that action can't be undone (its
+ * notes changed since), ⌘Z stops there with the reason instead of undoing something older.
+ */
+export function undoTarget<E extends { kind: string; undoable: boolean; message: string }>(
   entries: E[]
-): E | null {
-  return entries.find((e) => e.kind === 'action' && e.undoable) ?? null
+): { entry: E } | { reason: string } | null {
+  const cancelled: string[] = []
+  for (const e of entries) {
+    if (e.kind === 'external') continue
+    const i = cancelled.indexOf(e.message)
+    if (i >= 0) {
+      cancelled.splice(i, 1)
+      continue
+    }
+    if (e.kind === 'undo') {
+      if (e.message.startsWith(UNDID)) cancelled.push(e.message.slice(UNDID.length))
+      continue
+    }
+    if (e.undoable) return { entry: e }
+    return { reason: `Can't undo “${e.message}”: its notes changed since.` }
+  }
+  return null
 }
