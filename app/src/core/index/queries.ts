@@ -156,7 +156,9 @@ function lastMeetings(all: { m: RecordSummary; ids: string[] }[]): Map<string, s
   return out
 }
 
-function outreachFor(db: Db, schema: Schema, person: RecordSummary, lastMeeting: string | null, today: string) {
+function outreachFor(
+  db: Db, schema: Schema, person: RecordSummary, lastMeeting: string | null, today: string
+): { events: OutreachEvent[]; state: OutreachState; company: RecordSummary | null } {
   const events = eventsOf(db, person.id)
   const company = links(person.fields.company)[0] ? resolveName(db, links(person.fields.company)[0], 'company') : null
   const cadence = person.fields.cadence_days
@@ -199,7 +201,7 @@ export function today(db: Db, schema: Schema, date: string): TodayData {
 export function detail(db: Db, schema: Schema, id: string, root: string, date: string): RecordDetail | null {
   const rec = byId(db, id)
   if (!rec) return null
-  let body = ''
+  let body: string
   try {
     body = parseNote(readFileSync(join(root, rec.path), 'utf8')).body
   } catch {

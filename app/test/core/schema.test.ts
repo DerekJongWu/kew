@@ -4,7 +4,7 @@ import { loadSchema, serializeSchema } from '../../src/core/schema/load'
 import { ValidationError, coerceValue, validateFields } from '../../src/core/schema/validate'
 import type { FieldDef } from '../../src/core/schema/types'
 
-const field = (type: string, key: string) =>
+const field = (type: string, key: string): FieldDef =>
   DEFAULT_SCHEMA.types[type as 'company'].fields.find((f) => f.key === key) as FieldDef
 
 describe('schema load', () => {

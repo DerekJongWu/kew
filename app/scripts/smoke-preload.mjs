@@ -15,7 +15,7 @@ app.whenReady().then(async () => {
     show: false,
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true }
   })
-  let result = 'error'
+  let result
   try {
     await win.loadURL('data:text/html,<title>smoke</title>')
     result = await win.webContents.executeJavaScript(

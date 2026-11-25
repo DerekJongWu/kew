@@ -121,7 +121,7 @@ describe('sample vault', () => {
 
     const schema = await v.schema()
     const stage = schema.types.company.fields.find((f) => f.key === 'pipeline_status')!
-    const cat = (s: unknown) => stage.options!.find((o) => o.value === s)?.category
+    const cat = (s: unknown): string | undefined => stage.options!.find((o) => o.value === s)?.category
     const companies = await v.list('company')
     for (const c of ['new', 'in-progress', 'active', 'closed']) {
       expect(companies.filter((r) => cat(r.fields.pipeline_status) === c).length).toBeGreaterThanOrEqual(2)

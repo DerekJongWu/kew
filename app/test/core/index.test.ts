@@ -16,7 +16,7 @@ beforeAll(async () => {
   await idx.rebuild(ROOT, schema)
 })
 
-const names = (rs: { name: string }[]) => rs.map((r) => r.name)
+const names = (rs: { name: string }[]): string[] => rs.map((r) => r.name)
 
 describe('rebuild', () => {
   it('indexes the five type folders and ignores the rest', () => {

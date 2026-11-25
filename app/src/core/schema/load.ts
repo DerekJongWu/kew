@@ -61,7 +61,7 @@ export function serializeSchema(s: Schema): string {
 
 export function loadSchema(text: string, lastValid: Schema | null): { schema: Schema; error: string | null } {
   const fallback = lastValid ?? DEFAULT_SCHEMA
-  const fail = (msg: string) => ({ schema: fallback, error: msg })
+  const fail = (msg: string): { schema: Schema; error: string } => ({ schema: fallback, error: msg })
   let raw: unknown
   try {
     raw = parse(text)

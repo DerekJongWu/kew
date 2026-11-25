@@ -64,7 +64,11 @@ export function affectedCount(ctx: Ctx, change: SchemaChange): number {
 }
 
 const stripRenamed = (options: OptionDef[]): OptionDef[] =>
-  options.map(({ renamedFrom: _r, ...rest }) => rest)
+  options.map((o) => {
+    const rest = { ...o }
+    delete rest.renamedFrom
+    return rest
+  })
 
 const deriveLabel = (key: string): string => {
   const s = key.replace(/_/g, ' ')

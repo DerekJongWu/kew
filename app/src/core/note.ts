@@ -181,7 +181,7 @@ export function rewriteFrontmatterStrings(text: string, fn: (s: string) => strin
     for (let i = idx; i < end; i++) inPlace[i] = fn(inPlace[i])
     const candidate = inPlace.join('\n')
     const back = splitFrontmatter(candidate)
-    let ok = false
+    let ok: boolean
     try {
       ok = sameValue((rawYaml(back.lines, back.fmEnd) as Record<string, unknown>)[key], want)
     } catch {

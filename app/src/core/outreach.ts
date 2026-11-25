@@ -53,7 +53,7 @@ export function computeOutreach(
   events: OutreachEvent[],
   today: string,
 ): OutreachState {
-  const lastOf = (dir: 'out' | 'in') => events.filter((e) => e.dir === dir).map((e) => e.date).sort().pop() ?? null
+  const lastOf = (dir: 'out' | 'in'): string | null => events.filter((e) => e.dir === dir).map((e) => e.date).sort().pop() ?? null
   const lastOutbound = lastOf('out')
   const lastInbound = lastOf('in')
   const base = { lastOutbound, lastInbound }

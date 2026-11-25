@@ -6,7 +6,8 @@ import { History } from '../../src/core/history'
 import { openIndex, type Index } from '../../src/core/index'
 import { loadSchema } from '../../src/core/schema/load'
 import { ValidationError } from '../../src/core/schema/validate'
-import type { Schema } from '../../src/core/schema/types'
+import type { FieldDef, OptionDef, Schema } from '../../src/core/schema/types'
+import type { ActionResult } from '../../src/shared/api'
 import { undoAction, type Ctx } from '../../src/core/write/apply'
 import { setFields } from '../../src/core/write/records'
 import {
@@ -25,7 +26,7 @@ const TEMPLATES: Ctx['templates'] = { company: '', person: '', meeting: '', them
 let tmp: string, vault: string, idx: Index, history: History, ctx: Ctx, current: Schema
 
 const read = (rel: string): string => readFileSync(join(vault, rel), 'utf8')
-const companyField = (k: string) => current.types.company.fields.find((f) => f.key === k)!
+const companyField = (k: string): FieldDef => current.types.company.fields.find((f) => f.key === k)!
 
 beforeEach(async () => {
   tmp = await fsp.mkdtemp(join(tmpdir(), 'kew-schema-changes-'))
@@ -50,7 +51,7 @@ afterEach(async () => {
   await fsp.rm(tmp, { recursive: true, force: true })
 })
 
-const stageOptions = () =>
+const stageOptions = (): OptionDef[] =>
   companyField('pipeline_status').options!.map((o) =>
     o.value === 'reached-out' ? { ...o, value: 'contacted', label: 'Contacted', renamedFrom: 'reached-out' } : o
   )
@@ -146,7 +147,7 @@ describe('changeSchema', () => {
   })
 
   it('refuses renaming onto an existing key, a bad key, or a system field', async () => {
-    const rename = (from: string, to: string) => changeSchema(ctx, { kind: 'rename-field', type: 'company', from, to })
+    const rename = (from: string, to: string): Promise<ActionResult> => changeSchema(ctx, { kind: 'rename-field', type: 'company', from, to })
     await expect(rename('stage', 'source')).rejects.toThrow(ValidationError)
     await expect(rename('stage', 'Bad Key')).rejects.toThrow(ValidationError)
     await expect(rename('pipeline_status', 'status')).rejects.toThrow(/system/)
