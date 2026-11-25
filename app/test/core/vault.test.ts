@@ -158,6 +158,20 @@ describe('sample vault', () => {
     for (const t of TYPES) for (const r of await v.list(t)) expect(r.problems, r.path).toEqual([])
   })
 
+  it('uses only invented names and example URLs', async () => {
+    const v = await openVault()
+    const companies = (await v.list('company')).map((c) => c.name)
+    expect(companies).toContain('Bramblewick Health')
+    expect(companies).not.toContain('Copperleaf Health')
+    const people = await v.list('person')
+    for (const p of people) {
+      expect(String(p.fields.linkedin)).toMatch(/^https:\/\/linkedin\.example\/in\/[a-z-]+$/)
+      expect(p.problems).toEqual([])
+    }
+    const jonah = people.find((p) => p.name === 'Jonah Pell')!
+    expect(jonah.fields.company).toBe('[[Bramblewick Health]]')
+  })
+
   it('starts history with the sample in the initial commit', async () => {
     const v = await openVault()
     const h = await v.history()

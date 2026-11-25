@@ -37,7 +37,7 @@ const COMPANIES: Company[] = [
     extra: { conviction: 'high', round_status: 'tracking' } },
   { name: 'Lanternfish Data', status: 'reached-out', seen: -20, source: 'linkedin', stage: 'seed', theme: 'Supply Chain Data',
     what: 'Live customs and port-delay data for mid-size importers.', team: '[[Mara Quintero]], CEO. Ran a customs brokerage for eight years.' },
-  { name: 'Copperleaf Health', status: 'reached-out', seen: -25, source: 'intro', stage: 'series-a', theme: 'Clinical Back Office',
+  { name: 'Bramblewick Health', status: 'reached-out', seen: -25, source: 'intro', stage: 'series-a', theme: 'Clinical Back Office',
     what: 'Staffing marketplace for per-diem nurses, priced by shift.', team: '[[Jonah Pell]], CEO.',
     extra: { round_status: 'raising', raise: '$12M' } },
   { name: 'Driftwood Ledger', status: 'reached-out', seen: -12, source: 'event', stage: 'pre-seed', theme: 'Supply Chain Data',
@@ -73,7 +73,7 @@ interface Person {
 const PEOPLE: Person[] = [
   { name: 'Mara Quintero', company: 'Lanternfish Data', role: 'CEO', category: 'founder', channel: 'linkedin', met: false, cadence: 7,
     log: [[-10, 'out', 'linkedin', 'Intro note after seeing their port-delay demo']], notes: 'Former customs broker.' },
-  { name: 'Jonah Pell', company: 'Copperleaf Health', role: 'CEO', category: 'founder', channel: 'email', met: false, cadence: 7,
+  { name: 'Jonah Pell', company: 'Bramblewick Health', role: 'CEO', category: 'founder', channel: 'email', met: false, cadence: 7,
     log: [[-8, 'out', 'email', 'Asked how they recruit the nurse supply side'], [-1, 'in', 'email', 'Shared the deck and asked for a call next week']],
     notes: 'Warm intro through a former portfolio founder.' },
   { name: 'Rosalind Varga', company: 'Driftwood Ledger', role: 'Co-founder', category: 'founder', channel: 'email', met: false, cadence: 7,
@@ -118,7 +118,7 @@ const THEMES: { name: string; slug: string; living: boolean; landscape: string; 
     landscape: '[[Marrowgate Energy]], [[Tallowby Energy]], [[Nettlebrook Systems]].',
     thesis: 'Utilities need software to manage load they no longer control.', signal: 'Two municipal utilities issued flexible-load RFPs this quarter.' },
   { name: 'Clinical Back Office', slug: 'clinical-back-office', living: true,
-    landscape: '[[Pinemoth Analytics]], [[Quillfeather Labs]], [[Copperleaf Health]], [[Saltmarsh Health]].',
+    landscape: '[[Pinemoth Analytics]], [[Quillfeather Labs]], [[Bramblewick Health]], [[Saltmarsh Health]].',
     thesis: 'Billing and paperwork are where small providers lose the most time.', signal: 'Prior-authorization rules tightened again this year.' },
   { name: 'Supply Chain Data', slug: 'supply-chain-data', living: false,
     landscape: '[[Orchard Signal]], [[Lanternfish Data]], [[Driftwood Ledger]], [[Fernwick Robotics]].',
@@ -161,7 +161,7 @@ export async function generateSample(root: string, today: string): Promise<void>
     add('person', p.name, {
       met: p.met,
       ...(p.company ? { company: link(p.company) } : {}),
-      linkedin: `https://www.linkedin.com/in/${slug}-example`,
+      linkedin: `https://linkedin.example/in/${slug}`,
       email: `${slug.split('-')[0]}@${(p.company ?? 'mail').toLowerCase().replace(/[^a-z]+/g, '')}.example`,
       role: p.role, category: p.category, channel: p.channel,
       ...(p.cadence ? { cadence_days: p.cadence } : {})
