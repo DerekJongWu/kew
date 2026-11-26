@@ -215,8 +215,12 @@ export class NoteEditor {
   flush(): Promise<void> {
     return this.sync.flush()
   }
-  /** Focus with the caret at the end of the note, scrolled into view. */
+  /**
+   * ⌘E: focus with the caret at the end of the note, scrolled into view. When the editor already
+   * has focus, the caret stays where it is.
+   */
   focus(): void {
+    if (this.view.hasFocus) return
     const end = this.view.state.doc.length
     this.view.dispatch({ selection: { anchor: end }, scrollIntoView: true })
     this.view.focus()

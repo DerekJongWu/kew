@@ -45,6 +45,13 @@ describe('formatDate', () => {
     expect(formatDate('2025-11-24', T)).toBe('24 Nov 2025')
     expect(formatDate('2027-02-01', T)).toBe('1 Feb 2027')
   })
+  it('shows an invalid or impossible date exactly as stored', () => {
+    for (const raw of ['2026-02-30', 'garbage', '2026-13-01', '2026-11-24T10:00', '', '24/11/2026'])
+      expect(formatDate(raw, T)).toBe(raw)
+    expect(friendlyDate('2026-02-30', T)).toBe('2026-02-30')
+    expect(friendlyDate('soon', T)).toBe('soon')
+    expect(formatDate('2024-02-29', T)).toBe('29 Feb 2024') // a real leap day
+  })
   it('has one placeholder for empty values', () => {
     expect(EMPTY).toBe('Empty')
   })

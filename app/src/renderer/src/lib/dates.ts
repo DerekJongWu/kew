@@ -20,8 +20,19 @@ export const addDays = (iso: string, n: number): string =>
 /** The one placeholder for a field with no value. */
 export const EMPTY = 'Empty'
 
-/** The one date format: "24 Nov", with the year ("24 Nov 2025") when it isn't the current year. */
+/** Whether `iso` is a real calendar date written as YYYY-MM-DD (2026-02-30 is not). */
+export function isValidIsoDate(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false
+  const t = utc(iso)
+  return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === iso
+}
+
+/**
+ * The one date format: "24 Nov", with the year ("24 Nov 2025") when it isn't the current year.
+ * Anything that isn't a real YYYY-MM-DD date is shown exactly as stored.
+ */
 export function formatDate(iso: string, today: string): string {
+  if (!isValidIsoDate(iso)) return iso
   const d = new Date(utc(iso))
   const day = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
   return iso.slice(0, 4) === today.slice(0, 4) ? day : `${day} ${d.getUTCFullYear()}`
@@ -29,6 +40,7 @@ export function formatDate(iso: string, today: string): string {
 
 /** "today", "3 days ago", "in 4 days", else "24 Nov" (or "20 Aug 2025" in another year). */
 export function friendlyDate(iso: string, today: string): string {
+  if (!isValidIsoDate(iso) || !isValidIsoDate(today)) return formatDate(iso, today)
   const diff = Math.round((utc(iso) - utc(today)) / DAY)
   if (diff === 0) return 'today'
   if (diff === -1) return 'yesterday'
