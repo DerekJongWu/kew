@@ -4,7 +4,7 @@
 // lands in the temp folder, never the real one), and drives the window over the Chrome DevTools
 // protocol (no extra dependencies). Asserts the vault files on disk after each step.
 import { spawn } from 'node:child_process'
-import { mkdtempSync, readFileSync, readdirSync, existsSync, rmSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, existsSync, rmSync, mkdirSync, statSync } from 'node:fs'
 import { tmpdir, homedir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,9 +24,25 @@ mkdirSync(join(home, 'Documents'), { recursive: true })
 const vaultDir = join(home, 'Documents', 'Kew Sample')
 // Guard: never let a run touch the real Documents folder.
 const realKewFolders = ['Kew Sample', 'Kew'].map((n) => join(homedir(), 'Documents', n))
-const realBefore = realKewFolders.filter((p) => existsSync(p))
-if (realBefore.length)
-  throw new Error(`Refusing to run: ${realBefore.join(', ')} already exists. Move it away first.`)
+// A real folder the user made themselves may already exist: fingerprint it and require it unchanged.
+function fingerprint(dir) {
+  if (!existsSync(dir)) return null
+  const out = []
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name)
+      if (e.isDirectory()) walk(p)
+      else {
+        const st = statSync(p)
+        out.push(`${p}\t${st.size}\t${st.mtimeMs}`)
+      }
+    }
+  }
+  walk(dir)
+  return out.sort().join('\n')
+}
+const realBefore = realKewFolders.map(fingerprint)
+const realUnchanged = () => realKewFolders.every((p, i) => fingerprint(p) === realBefore[i])
 const port = 9300 + Math.floor(Math.random() * 500)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let passed = 0
@@ -192,12 +208,12 @@ try {
   check('app exited on its own', result !== null, result ? `code ${result.code}` : 'still running')
   check('pending edit was saved before exit', read('People', person).includes('Typed just before quitting.'))
 
-  check('real Documents has no new Kew folders', !realKewFolders.some((p) => existsSync(p)))
+  check('real Documents Kew folders untouched', realUnchanged())
 
   console.log(`\nE2E PASS (${passed} checks)`)
 } catch (e) {
   console.error(String(e.message ?? e))
-  if (realKewFolders.some((p) => existsSync(p))) console.error('WARNING: a Kew folder appeared in the real Documents; remove it.')
+  if (!realUnchanged()) console.error('WARNING: a Kew folder in the real Documents changed or appeared; check it.')
   console.error('E2E FAIL')
   process.exitCode = 1
 } finally {
