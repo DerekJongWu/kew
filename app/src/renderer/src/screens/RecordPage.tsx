@@ -351,7 +351,18 @@ export function RecordPage({ id }: { id: string }): React.JSX.Element {
                 <StatusSelect
                   field={statusField}
                   value={record.fields.pipeline_status}
-                  onCommit={(v) => run(() => commit('pipeline_status', v))}
+                  onCommit={(v) =>
+                    v === 'passed'
+                      ? setPassing(true)
+                      : run(async () => {
+                          const res = await status.run(() =>
+                            kew.setFields(record.id, { pipeline_status: v })
+                          )
+                          const stage = statusField.options?.find((o) => o.value === v)?.label
+                          if (stage)
+                            toasts.show(toastText.moved(record.name, stage), entryIdOf(res))
+                        })
+                  }
                 />
                 <Button onClick={() => setPassing(true)}>Pass…</Button>
               </>

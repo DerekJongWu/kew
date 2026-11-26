@@ -177,6 +177,8 @@ export class NoteEditor {
   readonly view: EditorView
   private sync: BodySync
   private offChanged: () => void
+  private ownWrites = 0 // this editor's body saves whose change events haven't arrived yet
+  private namesTimer: ReturnType<typeof setTimeout> | null = null
   private alive = true
 
   constructor(
@@ -197,7 +199,10 @@ export class NoteEditor {
             ...(undoable ? [] : [Transaction.addToHistory.of(false)])
           ]
         }),
-      write: (text) => status.run(() => kew.setBody(recordId, text)).then(() => undefined),
+      write: (text) => {
+        this.ownWrites++
+        return status.run(() => kew.setBody(recordId, text)).then(() => undefined)
+      },
       onConflict: (c) => this.events.onConflict(c),
       onError: (e) => this.events.onError(e === null ? null : plainError(e)),
       delay: 800
@@ -223,8 +228,9 @@ export class NoteEditor {
           }),
           EditorView.domEventHandlers({
             blur: () => void this.sync.save(),
-            // ⌘-click opens a link. Any click on a link that doesn't resolve offers to create
-            // its record; a plain click still places the caret.
+            // ⌘-click opens a link. A click on a link that doesn't resolve offers to create its
+            // record; a plain click still places the caret, and one made while the caret is
+            // already inside that link (editing its text) doesn't offer again.
             mousedown: (e, v) => {
               if (e.button !== 0) return false
               const pos = v.posAtCoords({ x: e.clientX, y: e.clientY })
@@ -233,7 +239,9 @@ export class NoteEditor {
               const link = linkAt(line.text, pos - line.from)
               if (!link) return false
               const missing = isMissing(v.state, link.name)
-              if (missing) this.events.onMissingLink(link.name)
+              const head = v.state.selection.main.head - line.from
+              const editing = v.hasFocus && head >= link.from && head <= link.to
+              if (missing && (e.metaKey || !editing)) this.events.onMissingLink(link.name)
               if (!e.metaKey) return false
               e.preventDefault()
               if (!missing) this.events.onOpenLink(link.name)
@@ -244,11 +252,20 @@ export class NoteEditor {
       })
     })
     this.refreshNames()
-    this.offChanged = kew.onChanged(() => this.refreshNames())
+    this.offChanged = kew.onChanged((ids) => {
+      // This editor's own autosave can't change any record's name: skip the reload.
+      if (this.ownWrites > 0 && ids.length === 1 && ids[0] === recordId) {
+        this.ownWrites--
+        return
+      }
+      if (this.namesTimer) clearTimeout(this.namesTimer)
+      this.namesTimer = setTimeout(() => this.refreshNames(), 300) // a burst of changes, one reload
+    })
   }
 
   /** Reloads record names so links re-mark as records are created, renamed or deleted. */
   private refreshNames(): void {
+    this.namesTimer = null
     loadNames().then(
       (names) => this.alive && this.view.dispatch({ effects: setNames.of(names) }),
       () => undefined // keep the last marks; links still open or offer creation on ⌘-click
@@ -287,6 +304,7 @@ export class NoteEditor {
   destroy(): Promise<void> {
     const saved = this.sync.flush()
     this.alive = false
+    if (this.namesTimer) clearTimeout(this.namesTimer)
     this.offChanged()
     this.sync.dispose()
     this.view.destroy()

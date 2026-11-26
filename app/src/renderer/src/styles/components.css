@@ -2054,7 +2054,8 @@ button.timeline-text {
   border-radius: var(--r-control);
   background: var(--hover);
 }
-/* Save stays in reach at the bottom of the window while the options list scrolls past. */
+/* Save stays in reach at the bottom of the window while the options list scrolls past. The
+   negative margin bleeds it to the panel edges: keep it equal to .field-panel's padding (--s-4). */
 .field-panel .form-actions {
   position: sticky;
   bottom: 0;
