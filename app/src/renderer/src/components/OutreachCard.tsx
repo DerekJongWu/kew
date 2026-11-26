@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { kew } from '../api'
 import { plainError, status } from '../lib/actions'
 import { friendlyDate, isoDate } from '../lib/dates'
-import { toastText, toasts } from '../lib/toast'
+import { entryIdOf, toastText, toasts } from '../lib/toast'
 import type { OutreachEvent, RecordDetail } from '../../../shared/api'
 import { Button } from './Button'
 import { Chip } from './Chip'
@@ -38,10 +38,10 @@ export function OutreachCard({ person }: { person: RecordDetail }): React.JSX.El
     setError(null)
     setBusy(true)
     status.run(fn).then(
-      () => {
+      (res) => {
         setBusy(false)
         setMode(null)
-        toasts.show(done)
+        toasts.show(done, entryIdOf(res))
       },
       (e) => (setBusy(false), setError(plainError(e)))
     )

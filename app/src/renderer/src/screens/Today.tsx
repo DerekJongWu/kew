@@ -3,7 +3,7 @@ import { kew, useQuery } from '../api'
 import { router } from '../router'
 import { plainError, status } from '../lib/actions'
 import { addDays, friendlyDate, isoDate, longDate } from '../lib/dates'
-import { toastText, toasts } from '../lib/toast'
+import { entryIdOf, toastText, toasts } from '../lib/toast'
 import type { RecordDetail, RecordSummary, Schema, TodayPerson } from '../../../shared/api'
 import { Button } from '../components/Button'
 import { Chip } from '../components/Chip'
@@ -29,10 +29,10 @@ function useRow(): {
     setError(null)
     setBusy(true)
     status.run(fn).then(
-      () => {
+      (res) => {
         setBusy(false)
         setMode(null)
-        if (done) toasts.show(done)
+        if (done) toasts.show(done, entryIdOf(res))
       },
       (e) => (setBusy(false), setError(plainError(e)))
     )

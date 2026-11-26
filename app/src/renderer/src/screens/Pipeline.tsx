@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { kew, useQuery } from '../api'
 import { router, useRoute } from '../router'
 import { plainError, status } from '../lib/actions'
-import { toastText, toasts } from '../lib/toast'
+import { entryIdOf, toastText, toasts } from '../lib/toast'
 import {
   addView,
   boardColumns,
@@ -88,7 +88,7 @@ export function Pipeline(): React.JSX.Element {
     setPending((s) => new Set(s).add(id))
     status
       .run(fn)
-      .then(() => toasts.show(done))
+      .then((res) => toasts.show(done, entryIdOf(res)))
       .catch((e) => setError(plainError(e)))
       .finally(() =>
         setPending((s) => {

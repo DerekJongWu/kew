@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { createToasts, toastText } from '../../src/renderer/src/lib/toast'
+import {
+  STALE_UNDO,
+  createToasts,
+  entryIdOf,
+  toastText,
+  toastUndo
+} from '../../src/renderer/src/lib/toast'
 
 afterEach(() => vi.useRealTimers())
 
@@ -53,5 +59,50 @@ describe('toastText', () => {
     expect(toastText.snoozed('Ana Ruiz', '2026-12-01', '2026-11-24')).toBe(
       'Snoozed Ana Ruiz until 1 Dec'
     )
+  })
+})
+
+describe('toastUndo', () => {
+  type E = { id: string; kind: string; undoable: boolean; message: string }
+  const e = (id: string, message: string, kind = 'action', undoable = true): E => ({
+    id,
+    kind,
+    undoable,
+    message
+  })
+  it('undoes the toasted action while it is still the newest change', () => {
+    expect(toastUndo([e('A', 'Moved Acme to Active'), e('Z', 'Older')], 'A')).toEqual({ undo: 'A' })
+  })
+  it('refuses when something newer landed, instead of undoing that', () => {
+    const entries = [e('B', 'Saved views'), e('A', 'Moved Acme to Active')]
+    expect(toastUndo(entries, 'A')).toEqual({ reason: STALE_UNDO })
+    expect(toastUndo([e('C', 'Edited Acme'), ...entries], 'A')).toEqual({ reason: STALE_UNDO })
+  })
+  it('refuses when the action was already undone', () => {
+    const entries = [e('U', 'Undid: Moved Acme to Active', 'undo'), e('A', 'Moved Acme to Active')]
+    expect(toastUndo(entries, 'A')).toEqual({ reason: STALE_UNDO })
+  })
+  it('ignores outside edits, as ⌘Z does', () => {
+    expect(
+      toastUndo([e('X', 'Changed outside Kew', 'external', false), e('A', 'Moved')], 'A')
+    ).toEqual({ undo: 'A' })
+  })
+})
+
+describe('toast entries', () => {
+  it('keeps the entry id of the action it announces and drops Undo when settled', () => {
+    vi.useFakeTimers()
+    const t = createToasts()
+    t.show('Moved Acme to Active', entryIdOf({ entry: { id: 'A' }, changedIds: [] }))
+    const shown = t.get()!
+    expect(shown.entryId).toBe('A')
+    t.settle(shown.id + 1, 'ignored') // another toast's id: no effect
+    expect(t.get()?.message).toBe('Moved Acme to Active')
+    t.settle(shown.id, STALE_UNDO)
+    expect(t.get()).toEqual({ id: shown.id, message: STALE_UNDO })
+    vi.advanceTimersByTime(5000)
+    expect(t.get()).toBeNull()
+    expect(entryIdOf(undefined)).toBeUndefined()
+    expect(entryIdOf({ duplicates: [] })).toBeUndefined()
   })
 })

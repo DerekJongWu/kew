@@ -172,7 +172,7 @@ function App(): React.JSX.Element {
         />
       )}
       {newType && <NewRecordDialog key={newType} type={newType} onClose={() => setNewType(null)} />}
-      <ToastHost onUndo={undoLast} />
+      <ToastHost />
     </div>
   )
 }
