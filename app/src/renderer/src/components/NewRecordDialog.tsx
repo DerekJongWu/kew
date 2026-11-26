@@ -3,7 +3,7 @@ import { kew, useQuery } from '../api'
 import { router } from '../router'
 import { plainError, status } from '../lib/actions'
 import { TYPE_LABEL } from '../lib/destinations'
-import { isoDate } from '../lib/dates'
+import { EMPTY, isoDate } from '../lib/dates'
 import {
   autoMeetingName,
   emptyForm,
@@ -203,7 +203,7 @@ export function NewRecordDialog({
                   value={form.meetingType}
                   onChange={(e) => set({ meetingType: e.target.value })}
                 >
-                  <option value="">None</option>
+                  <option value="">{EMPTY}</option>
                   {typeOptions.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}

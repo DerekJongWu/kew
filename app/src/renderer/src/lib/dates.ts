@@ -1,7 +1,6 @@
 // Friendly date text, computed in the renderer. Vault dates are local YYYY-MM-DD strings.
 
 const DAY = 86_400_000
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 const utc = (iso: string): number => {
@@ -18,7 +17,17 @@ export function isoDate(d: Date = new Date()): string {
 export const addDays = (iso: string, n: number): string =>
   new Date(utc(iso) + n * DAY).toISOString().slice(0, 10)
 
-/** "today", "3 days ago", "in 4 days", else "Thu 28 Nov" (or "20 Aug 2025" in another year). */
+/** The one placeholder for a field with no value. */
+export const EMPTY = 'Empty'
+
+/** The one date format: "24 Nov", with the year ("24 Nov 2025") when it isn't the current year. */
+export function formatDate(iso: string, today: string): string {
+  const d = new Date(utc(iso))
+  const day = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+  return iso.slice(0, 4) === today.slice(0, 4) ? day : `${day} ${d.getUTCFullYear()}`
+}
+
+/** "today", "3 days ago", "in 4 days", else "24 Nov" (or "20 Aug 2025" in another year). */
 export function friendlyDate(iso: string, today: string): string {
   const diff = Math.round((utc(iso) - utc(today)) / DAY)
   if (diff === 0) return 'today'
@@ -26,11 +35,7 @@ export function friendlyDate(iso: string, today: string): string {
   if (diff === 1) return 'tomorrow'
   if (diff < 0 && diff > -14) return `${-diff} days ago`
   if (diff > 0 && diff < 14) return `in ${diff} days`
-  const d = new Date(utc(iso))
-  const day = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
-  return iso.slice(0, 4) === today.slice(0, 4)
-    ? `${WEEKDAYS[d.getUTCDay()]} ${day}`
-    : `${day} ${d.getUTCFullYear()}`
+  return formatDate(iso, today)
 }
 
 /** "Tuesday, 24 November" for screen headers. */

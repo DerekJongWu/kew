@@ -4,7 +4,7 @@ import { plainError } from '../lib/actions'
 import { unwrap } from '../lib/pipeline'
 import { wrapLink } from '../lib/new-record'
 import type { RecordSummary, RecordType } from '../../../shared/api'
-import { TYPE_LABEL } from '../lib/destinations'
+import { TYPE_LABEL, TYPE_PLURAL } from '../lib/destinations'
 
 const ALL_TYPES: RecordType[] = ['company', 'person', 'meeting', 'theme', 'research']
 const MAX_SHOWN = 8
@@ -136,7 +136,7 @@ export function RelationPicker({
               ? ''
               : target === 'any'
                 ? 'Search any record'
-                : `Search ${TYPE_LABEL[target].toLowerCase()}s`
+                : `Search ${TYPE_PLURAL[target]}`
           }
           onChange={(e) => (setText(e.target.value), setOpen(true))}
           onFocus={() => setOpen(true)}

@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { FieldDef, FieldValue } from '../../../shared/api'
 import { plainError } from '../lib/actions'
+import { EMPTY, formatDate, isoDate } from '../lib/dates'
 import { displayValue, httpsHref, listValue, saveDraft } from '../lib/properties'
 import { RelationPicker } from './RelationPicker'
 import { useFlushOnLeave } from '../lib/use-flush'
@@ -97,7 +98,7 @@ function Control(p: ControlProps): React.JSX.Element {
           onChange={(e) => void commit(e.target.value || null)}
           {...aria}
         >
-          <option value="">—</option>
+          <option value="">{EMPTY}</option>
           {v && !options.some((o) => o.value === v) && <option value={v}>{v}</option>}
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -187,7 +188,7 @@ function TextInput({
         spellCheck={field.type === 'text'}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
-        placeholder="Empty"
+        placeholder={EMPTY}
         onFocus={() => (editing.current = true)}
         onChange={(e) => setDraft(e.target.value.replace(/\n/g, ' '))}
         onBlur={() => {
@@ -238,11 +239,42 @@ function DateInput({ id, value, invalid, describedBy, commit }: ControlProps): R
       if (!ok && last.current === v) last.current = null
     })
   }
+  const [editing, setEditing] = useState(false)
+  if (!editing && isFullDate(draft)) {
+    // At rest a date reads the same as everywhere else ("24 Nov"); focusing it opens the native editor.
+    return (
+      <button
+        id={id}
+        type="button"
+        className="field prop-field prop-date"
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        onClick={() => setEditing(true)}
+      >
+        {formatDate(draft, isoDate())}
+      </button>
+    )
+  }
+  if (!editing && draft === '') {
+    return (
+      <button
+        id={id}
+        type="button"
+        className="field prop-field prop-date prop-date-empty"
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        onClick={() => setEditing(true)}
+      >
+        {EMPTY}
+      </button>
+    )
+  }
   return (
     <input
       id={id}
       type="date"
       className="field prop-field"
+      autoFocus={editing}
       value={draft}
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
@@ -250,7 +282,10 @@ function DateInput({ id, value, invalid, describedBy, commit }: ControlProps): R
         setDraft(e.target.value)
         save(e.target.value)
       }}
-      onBlur={() => save(draft)}
+      onBlur={() => {
+        save(draft)
+        setEditing(false)
+      }}
     />
   )
 }

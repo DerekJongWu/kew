@@ -1,6 +1,6 @@
 import type { TimelineItem } from '../../../shared/api'
 import { router } from '../router'
-import { friendlyDate, isoDate } from '../lib/dates'
+import { EMPTY, friendlyDate, isoDate } from '../lib/dates'
 import { EmptyState } from './EmptyState'
 import { Section } from './Section'
 
@@ -20,7 +20,7 @@ export function Timeline({ items }: { items: TimelineItem[] }): React.JSX.Elemen
         <ol className="rows timeline">
           {items.map((t, i) => (
             <li key={i} className="row row-compact timeline-item">
-              <span className="timeline-date">{t.date ? friendlyDate(t.date, today) : '—'}</span>
+              <span className="timeline-date">{t.date ? friendlyDate(t.date, today) : EMPTY}</span>
               <span className="timeline-kind">{KIND[t.kind]}</span>
               {t.recordId ? (
                 <button

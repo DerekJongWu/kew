@@ -2,6 +2,7 @@
 // schema doesn't know, read-only, with "Add to schema".
 import { useState } from 'react'
 import type { FieldDef, FieldType, RecordDetail } from '../../../shared/api'
+import { EMPTY } from '../lib/dates'
 import { displayValue, guessType, otherKeys, propertyFields } from '../lib/properties'
 import { AddPropertyDialog } from './AddPropertyDialog'
 import { FieldInput, type Commit } from './FieldInput'
@@ -55,7 +56,7 @@ export function PropertyPanel({
               <div key={k} className="prop">
                 <dt className="prop-label">{k}</dt>
                 <dd className="prop-value prop-inline">
-                  <span className="prop-raw">{displayValue(record.fields[k]) || '—'}</span>
+                  <span className="prop-raw">{displayValue(record.fields[k]) || EMPTY}</span>
                   <button
                     type="button"
                     className="link"

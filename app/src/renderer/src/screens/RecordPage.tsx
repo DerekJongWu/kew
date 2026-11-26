@@ -7,6 +7,7 @@ import { plainError, status } from '../lib/actions'
 import { DESTINATIONS, TYPE_LABEL } from '../lib/destinations'
 import { splitProblems } from '../lib/properties'
 import { useFlushOnLeave } from '../lib/use-flush'
+import { EMPTY } from '../lib/dates'
 import { unwrap } from '../lib/pipeline'
 import { nameProblem } from '../../../shared/names'
 import type { FieldDef, FieldValue, RecordDetail, RecordType } from '../../../shared/api'
@@ -131,7 +132,7 @@ function StatusSelect({
         value={String(value ?? '')}
         onChange={(e) => onCommit(e.target.value || null)}
       >
-        <option value="">No status</option>
+        <option value="">{EMPTY}</option>
         {(field.options ?? []).map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
