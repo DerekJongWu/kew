@@ -171,7 +171,7 @@ export class NoteEditor {
           markdown(),
           syntaxHighlighting(highlight),
           wikiLinks,
-          autocompletion({ override: [completeLinks] }),
+          autocompletion({ override: [completeLinks], icons: false }),
           EditorView.lineWrapping,
           placeholder('Write anything. Type [[ to link a record.'),
           EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true' }),
@@ -215,7 +215,10 @@ export class NoteEditor {
   flush(): Promise<void> {
     return this.sync.flush()
   }
+  /** Focus with the caret at the end of the note, scrolled into view. */
   focus(): void {
+    const end = this.view.state.doc.length
+    this.view.dispatch({ selection: { anchor: end }, scrollIntoView: true })
     this.view.focus()
   }
 
