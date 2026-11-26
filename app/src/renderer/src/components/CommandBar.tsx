@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Command } from 'cmdk'
 import { kew } from '../api'
 import { router } from '../router'
 import { DESTINATIONS, SETTINGS, TYPE_LABEL } from '../lib/destinations'
 import { plainError } from '../lib/actions'
-import { defaultSelection, selectionKey, SEARCH_ITEM } from '../lib/command-selection'
+import {
+  createPickIntent,
+  defaultSelection,
+  isNavigationKey,
+  selectionKey,
+  SEARCH_ITEM
+} from '../lib/command-selection'
 import type { RecordType, SearchHit } from '../../../shared/api'
 import { Kbd } from './Chip'
 
@@ -35,6 +41,16 @@ export function CommandBar({
   const [searchError, setSearchError] = useState<string | null>(null)
   const [picked, setPicked] = useState<{ key: string; value: string } | null>(null)
   const [restore] = useState(() => document.activeElement) // focus goes back here on close
+  const [intent] = useState(createPickIntent) // only arrow keys and the pointer pick a row
+  // cmdk moves its own highlight to the first row after each keystroke and only re-reads `value`
+  // when the prop changes. To undo such a move, `value` is dropped for one render and restored in
+  // a layout effect, before paint, so the highlight never visibly leaves the top record.
+  const [resync, setResync] = useState(false)
+  useLayoutEffect(() => {
+    // Syncing an outside library's state: the second render is the point.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (resync) setResync(false)
+  }, [resync])
 
   const close = (): void => {
     onClose()
@@ -109,9 +125,14 @@ export function CommandBar({
         label="Command bar"
         shouldFilter={false}
         loop
-        value={value}
-        onValueChange={(v) => setPicked({ key, value: v })}
+        value={resync ? undefined : value}
+        onValueChange={(v) => {
+          if (intent.accepts()) setPicked({ key, value: v })
+          else if (v !== value) setResync(true)
+        }}
+        onPointerMove={intent.navigated}
         onKeyDown={(e) => {
+          if (isNavigationKey(e)) intent.navigated()
           if (e.key === 'Escape') {
             e.preventDefault()
             close()
@@ -122,7 +143,11 @@ export function CommandBar({
           autoFocus
           className="cmdk-input"
           value={q}
-          onValueChange={setQ}
+          onValueChange={(v) => {
+            intent.typed()
+            setPicked(null)
+            setQ(v)
+          }}
           placeholder="Jump to a record or run a command"
         />
         {shownError && (

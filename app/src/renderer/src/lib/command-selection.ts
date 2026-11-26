@@ -36,3 +36,23 @@ export function selectionKey(s: SelectionInput): string {
     s.commands.map((c) => c.id)
   ])
 }
+
+/** Keys that move cmdk's highlight (arrows, Home/End, and its ctrl-n/p/j/k bindings). */
+export function isNavigationKey(e: { key: string; ctrlKey: boolean }): boolean {
+  if (['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return true
+  return e.ctrlKey && ['n', 'p', 'j', 'k'].includes(e.key.toLowerCase())
+}
+
+/**
+ * Whether a highlight change counts as the user's pick. cmdk also moves the highlight on its own
+ * (to the first row, the pinned "Search notes for …", after every keystroke); only a change that
+ * follows an arrow key or the pointer is a pick. Typing clears it again.
+ */
+export function createPickIntent(): { typed(): void; navigated(): void; accepts(): boolean } {
+  let user = false
+  return {
+    typed: () => void (user = false),
+    navigated: () => void (user = true),
+    accepts: () => user
+  }
+}
