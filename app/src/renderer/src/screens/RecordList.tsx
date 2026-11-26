@@ -102,6 +102,8 @@ export function RecordList({ type }: { type: RecordType }): React.JSX.Element {
   const filtering = filterCount(prefs.filters) > 0 || query.trim() !== ''
   const loadError = schemaError ?? rowsError
   const hint = EMPTY_HINT[type]
+  // A type with no records at all: no filters to offer, and one New button (in the empty state).
+  const bare = rows?.length === 0 && !filtering
 
   return (
     <div className="screen screen-wide">
@@ -112,16 +114,18 @@ export function RecordList({ type }: { type: RecordType }): React.JSX.Element {
           </p>
           <h1 className="screen-title">{PLURAL[type]}</h1>
         </div>
-        <Button variant="primary" onClick={() => setCreating(true)} title="New  ⌘N">
-          New {noun}
-        </Button>
+        {!bare && (
+          <Button variant="primary" onClick={() => setCreating(true)} title="New  ⌘N">
+            New {noun}
+          </Button>
+        )}
       </header>
       {loadError && (
         <p className="row-error" role="alert">
           Couldn’t load {PLURAL[type].toLowerCase()}: {plainError(loadError)}
         </p>
       )}
-      {typeDef && (
+      {typeDef && !bare && (
         <div className="pipeline-tools">
           <div className="list-tools-left">
             <input
