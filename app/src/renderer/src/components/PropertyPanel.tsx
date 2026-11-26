@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { FieldDef, FieldType, RecordDetail } from '../../../shared/api'
 import { EMPTY } from '../lib/dates'
 import { displayValue, guessType, otherKeys, propertyFields } from '../lib/properties'
+import { createPortal } from 'react-dom'
 import { AddPropertyDialog } from './AddPropertyDialog'
 import { FieldInput, type Commit } from './FieldInput'
 import { Icon } from './Icon'
@@ -71,14 +72,17 @@ export function PropertyPanel({
           </dl>
         </div>
       )}
-      {adding && (
-        <AddPropertyDialog
-          type={record.type}
-          existing={fields.map((f) => f.key)}
-          prefill={adding === 'new' ? undefined : adding}
-          onClose={() => setAdding(null)}
-        />
-      )}
+      {adding &&
+        // Portaled: the record layout is a layout container, which would otherwise hold the fixed scrim.
+        createPortal(
+          <AddPropertyDialog
+            type={record.type}
+            existing={fields.map((f) => f.key)}
+            prefill={adding === 'new' ? undefined : adding}
+            onClose={() => setAdding(null)}
+          />,
+          document.body
+        )}
     </Section>
   )
 }

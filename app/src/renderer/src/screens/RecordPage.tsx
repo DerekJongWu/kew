@@ -33,6 +33,7 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const editing = useRef(false)
   const area = useRef<HTMLTextAreaElement>(null)
+  const reverting = useRef(false) // Escape was pressed: the blur that follows must not save the edited draft
   // Grow to fit the wrapped name, on every edit and whenever the width changes.
   useLayoutEffect(() => {
     const el = area.current
@@ -92,13 +93,18 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
         onChange={(e) => setDraft(e.target.value.replace(/\n/g, ' '))}
         onBlur={() => {
           editing.current = false
+          if (reverting.current) {
+            reverting.current = false
+            return
+          }
           void save()
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            void save()
+            if (!e.nativeEvent.isComposing) void save()
           } else if (e.key === 'Escape') {
+            reverting.current = true
             setDraft(record.name)
             setError(null)
             e.currentTarget.blur()
@@ -353,56 +359,60 @@ export function RecordPage({ id }: { id: string }): React.JSX.Element {
           </div>
         </div>
       </header>
-      {(unmatched.length > 0 || pageError) && (
-        <div className="record-banner" role="alert">
-          {pageError && <p>{pageError}</p>}
-          {unmatched.length > 0 && (
-            <>
-              <p>Kew found a problem in this note’s file:</p>
-              <ul>
-                {unmatched.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )}
+      {/* The container for the layout query. Dialogs live outside it: containment would make it their
+          containing block and pull their fixed scrim off the window. */}
+      <div className="record-body">
+        {(unmatched.length > 0 || pageError) && (
+          <div className="record-banner" role="alert">
+            {pageError && <p>{pageError}</p>}
+            {unmatched.length > 0 && (
+              <>
+                <p>Kew found a problem in this note’s file:</p>
+                <ul>
+                  {unmatched.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
 
-      {record.type === 'company' ? (
-        <>
-          {properties(true)}
-          <div className="record-grid">
+        {record.type === 'company' ? (
+          <>
+            {properties(true)}
+            <div className="record-grid">
+              <div className="record-main">
+                <Team people={record.people} />
+                {notes}
+              </div>
+              <aside className="record-side">
+                <Timeline items={record.timeline} />
+                {backlinks}
+              </aside>
+            </div>
+          </>
+        ) : record.type === 'person' ? (
+          <div className="record-grid record-grid-props">
             <div className="record-main">
-              <Team people={record.people} />
+              <OutreachCard person={record} />
+              <OutreachLog events={record.outreach?.events ?? []} />
               {notes}
             </div>
+            <div className="record-props">{properties(false)}</div>
+            <aside className="record-side">{backlinks}</aside>
+          </div>
+        ) : (
+          <div className="record-grid record-grid-props">
+            <div className="record-main">{notes}</div>
+            <div className="record-props">{properties(false)}</div>
             <aside className="record-side">
-              <Timeline items={record.timeline} />
+              {record.type === 'theme' && <ThemeCompanies name={record.name} />}
               {backlinks}
             </aside>
           </div>
-        </>
-      ) : record.type === 'person' ? (
-        <div className="record-grid record-grid-props">
-          <div className="record-main">
-            <OutreachCard person={record} />
-            <OutreachLog events={record.outreach?.events ?? []} />
-            {notes}
-          </div>
-          <div className="record-props">{properties(false)}</div>
-          <aside className="record-side">{backlinks}</aside>
-        </div>
-      ) : (
-        <div className="record-grid record-grid-props">
-          <div className="record-main">{notes}</div>
-          <div className="record-props">{properties(false)}</div>
-          <aside className="record-side">
-            {record.type === 'theme' && <ThemeCompanies name={record.name} />}
-            {backlinks}
-          </aside>
-        </div>
-      )}
+        )}
+      </div>
 
       {passing && (
         <PassDialog

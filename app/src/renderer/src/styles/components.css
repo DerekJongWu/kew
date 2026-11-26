@@ -294,6 +294,12 @@
 .field-select {
   padding-right: var(--s-1);
 }
+.field-select.is-empty option {
+  color: var(--text);
+}
+.field-select.is-empty {
+  color: var(--text-3);
+}
 .field-grow {
   flex: 1;
   min-width: 0;
@@ -1379,6 +1385,11 @@
 /* ---------- Record page ---------- */
 
 .record {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.record-body {
   display: flex;
   flex-direction: column;
   gap: var(--s-4);

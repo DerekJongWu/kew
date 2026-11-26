@@ -93,7 +93,7 @@ function Control(p: ControlProps): React.JSX.Element {
       return (
         <select
           id={id}
-          className="field field-select prop-field"
+          className={`field field-select prop-field${v ? '' : ' is-empty'}`}
           value={v}
           onChange={(e) => void commit(e.target.value || null)}
           {...aria}
@@ -198,7 +198,7 @@ function TextInput({
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
-            void save()
+            if (!e.nativeEvent.isComposing) void save()
           } else if (e.key === 'Escape') {
             setDraft(saved)
           }
