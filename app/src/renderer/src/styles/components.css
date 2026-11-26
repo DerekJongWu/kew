@@ -14,6 +14,7 @@
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr); /* one row exactly the window tall: sidebar pins, .main-scroll scrolls */
   height: 100%;
 }
 
@@ -28,6 +29,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--bg);
 }
 
@@ -42,6 +44,7 @@
 
 .main-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -651,10 +654,9 @@
   color: var(--text);
   text-align: left;
   flex: 0 0 auto;
-  max-width: 100%; /* truncates only when the name alone is wider than the row */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%; /* a name wider than the row wraps; it is never cut */
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .row-name:hover {
   color: var(--accent-text);
@@ -1117,6 +1119,11 @@
   column-gap: var(--s-3);
   padding: 0 var(--s-4);
 }
+.dtable-body {
+  min-height: 40px; /* rows grow to fit a wrapped name; the table measures them */
+  padding-top: var(--s-2);
+  padding-bottom: var(--s-2);
+}
 .dtable-head {
   position: sticky;
   top: 0;
@@ -1156,6 +1163,9 @@
   color: var(--text-2);
 }
 .cell-name {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
   color: var(--text);
 }
 .cell-name .row-name {
@@ -1265,13 +1275,18 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  height: 22px;
-  padding: 0 2px 0 var(--s-2);
+  min-height: 22px;
+  max-width: 100%;
+  padding: 1px 2px 1px var(--s-2);
   border-radius: var(--r-chip);
   background: var(--hover);
   color: var(--text);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .relpick-x {
+  flex: none;
+  align-self: flex-start;
   width: 18px;
   height: 18px;
   border: 0;
@@ -1364,6 +1379,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
+  container-type: inline-size;
+  container-name: record;
 }
 .record-head .screen-kicker {
   margin-bottom: var(--s-1);
@@ -1385,7 +1402,12 @@
   min-width: 0;
 }
 .record-title {
+  display: block;
   width: 100%;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   margin-left: calc(-1 * var(--s-1));
   padding: 0 var(--s-1);
   border: 1px solid transparent;
@@ -1426,12 +1448,37 @@
   gap: var(--s-4);
   align-items: start;
 }
-@media (max-width: 1080px) {
+/* Person and other records: notes on the left, properties then backlinks on the right. */
+.record-grid-props {
+  grid-template-areas:
+    'main props'
+    'main side';
+  grid-template-rows: auto 1fr;
+}
+.record-grid-props > .record-main {
+  grid-area: main;
+}
+.record-grid-props > .record-props {
+  grid-area: props;
+}
+.record-grid-props > .record-side {
+  grid-area: side;
+}
+/* When the record column is narrow, stack. Properties come above the notes, never below them. */
+@container record (max-width: 760px) {
   .record-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+  .record-grid-props {
+    grid-template-areas:
+      'props'
+      'main'
+      'side';
+    grid-template-rows: auto;
+  }
 }
 .record-main,
+.record-props,
 .record-side {
   display: flex;
   flex-direction: column;
@@ -1496,9 +1543,21 @@
 .prop-field::placeholder {
   color: var(--text-3);
 }
+.prop-wrap {
+  display: block;
+  height: auto;
+  min-height: var(--control-h);
+  padding-top: 4px;
+  padding-bottom: 4px;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
 .prop-inline {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s-1);
   min-width: 0;
 }
