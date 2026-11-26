@@ -26,7 +26,7 @@ import { kew } from '../api'
 import { plainError, status } from './actions'
 import { BodySync } from './body-sync'
 import { editorKeymap } from './editor-keys'
-import { isKnownLink, linkAt, linkQuery, matchesName } from './wikilinks'
+import { LINK, isKnownLink, linkAt, linkQuery, matchesName } from './wikilinks'
 import { TYPE_LABEL } from './destinations'
 
 /** Marks transactions that load text from disk, so they don't count as the user's edits. */
@@ -73,8 +73,9 @@ const wikiLinks = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
     matcher = new MatchDecorator({
-      regexp: /\[\[([^\][\n|]+)(\|[^\][\n]*)?\]\]/g,
-      decoration: (m, view) => (isMissing(view.state, m[1]) ? missingMark : linkMark)
+      regexp: new RegExp(LINK.source, 'g'),
+      // The target is group 1, without any #heading; [[#Heading]] (this note) is never missing.
+      decoration: (m, view) => (m[1].trim() && isMissing(view.state, m[1]) ? missingMark : linkMark)
     })
     constructor(view: EditorView) {
       this.decorations = this.matcher.createDeco(view)

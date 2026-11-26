@@ -1,7 +1,11 @@
 // [[Wiki link]] helpers for the editor: the link under the cursor, an open "[[" query, name matching.
 import type { FieldValue } from '../../../shared/api'
 
-const LINK = /\[\[([^\][\n|]+)(\|[^\][\n]*)?\]\]/g
+/**
+ * A [[link]] on one line: [[Target]], [[Target|alias]], [[Target#Heading]] or
+ * [[Target#Heading|alias]]. Group 1 is the target, without the heading, as in core/links.ts.
+ */
+export const LINK = /\[\[([^\][\n|#]*)(#[^\][\n|]*)?(\|[^\][\n]*)?\]\]/g
 
 /** The link spanning `pos` (inclusive of its brackets), or null. */
 export function linkAt(
@@ -11,7 +15,7 @@ export function linkAt(
   for (const m of text.matchAll(LINK)) {
     const from = m.index
     const to = from + m[0].length
-    if (pos >= from && pos <= to) return { name: m[1].trim(), from, to }
+    if (pos >= from && pos <= to) return m[1].trim() ? { name: m[1].trim(), from, to } : null
   }
   return null
 }

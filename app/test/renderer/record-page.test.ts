@@ -15,7 +15,7 @@ import {
   splitEmptyFields
 } from '../../src/renderer/src/lib/properties'
 import { BodySync, normalizeBody, reconcile } from '../../src/renderer/src/lib/body-sync'
-import { isKnownLink, linkAt, linkQuery, matchesName } from '../../src/renderer/src/lib/wikilinks'
+import { LINK, isKnownLink, linkAt, linkQuery, matchesName } from '../../src/renderer/src/lib/wikilinks'
 import type { FieldDef } from '../../src/shared/api'
 
 const f = (key: string, type: FieldDef['type'] = 'text'): FieldDef => ({
@@ -23,6 +23,18 @@ const f = (key: string, type: FieldDef['type'] = 'text'): FieldDef => ({
   label: key,
   type,
   tier: 'starter'
+})
+
+describe('heading links', () => {
+  it('resolve on the target before the #heading, as the core parser does', () => {
+    const t = 'See [[Acme#Team]] and [[Acme#Team|the team]] and [[#Local]].'
+    expect(linkAt(t, 6)).toEqual({ name: 'Acme', from: 4, to: 17 })
+    expect(linkAt(t, 25)?.name).toBe('Acme')
+    expect(linkAt(t, 50)).toBeNull() // a heading in this note links no record
+    const names = new Set(['acme'])
+    for (const m of t.matchAll(LINK)) if (m[1].trim()) expect(isKnownLink(m[1], names)).toBe(true)
+    expect([...t.matchAll(LINK)].map((m) => m[1])).toEqual(['Acme', 'Acme', ''])
+  })
 })
 
 describe('isKnownLink', () => {
