@@ -1,34 +1,12 @@
-# kewapp
+# Kew app
 
-An Electron application with React and TypeScript
-
-## Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-
-## Project Setup
-
-### Install
+The Electron app for Kew. Project rules, commands and architecture are in [`../CLAUDE.md`](../CLAUDE.md); current status and next steps are in [`../docs/HANDOFF.md`](../docs/HANDOFF.md); the end-user install guide is [`INSTALL.md`](INSTALL.md).
 
 ```bash
-$ npm install
-```
-
-### Development
-
-```bash
-$ npm run dev
-```
-
-### Build
-
-```bash
-# For windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
+npm install      # needs Node 22.5+
+npm run dev      # run with hot reload (uses your real vault)
+npm test         # unit tests
+npm run typecheck && npm run lint
+npm run build && npx electron-builder --mac dir --arm64 && npm run e2e   # packaged end-to-end test
+npm run dist     # DMGs for arm64 and x64 in dist/
 ```
