@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { kew } from '../api'
 import { plainError, status } from '../lib/actions'
 import { friendlyDate, isoDate } from '../lib/dates'
+import { toastText, toasts } from '../lib/toast'
 import type { OutreachEvent, RecordDetail } from '../../../shared/api'
 import { Button } from './Button'
 import { Chip } from './Chip'
@@ -33,11 +34,15 @@ export function OutreachCard({ person }: { person: RecordDetail }): React.JSX.El
   const met = person.fields.met === true
   const first = person.name.split(' ')[0]
 
-  const run = (fn: () => Promise<unknown>): void => {
+  const run = (fn: () => Promise<unknown>, done: string): void => {
     setError(null)
     setBusy(true)
     status.run(fn).then(
-      () => (setBusy(false), setMode(null)),
+      () => {
+        setBusy(false)
+        setMode(null)
+        toasts.show(done)
+      },
       (e) => (setBusy(false), setError(plainError(e)))
     )
   }
@@ -59,9 +64,17 @@ export function OutreachCard({ person }: { person: RecordDetail }): React.JSX.El
               Log send
             </Button>
             <Button onClick={() => setMode('in')}>Log reply</Button>
-            <SnoozeMenu today={today} onSnooze={(d) => run(() => kew.snooze(person.id, d))} />
+            <SnoozeMenu
+              today={today}
+              onSnooze={(d) =>
+                run(() => kew.snooze(person.id, d), toastText.snoozed(person.name, d, today))
+              }
+            />
             {!met && (
-              <Button variant="ghost" onClick={() => run(() => kew.weMet(person.id))}>
+              <Button
+                variant="ghost"
+                onClick={() => run(() => kew.weMet(person.id), toastText.met(person.name))}
+              >
                 We met
               </Button>
             )}
@@ -73,7 +86,10 @@ export function OutreachCard({ person }: { person: RecordDetail }): React.JSX.El
           dir={mode}
           defaultChannel={String(person.fields.channel ?? '')}
           onSubmit={(channel, text) =>
-            run(() => kew.logOutreach(person.id, { dir: mode, channel, text }))
+            run(
+              () => kew.logOutreach(person.id, { dir: mode, channel, text }),
+              toastText.logged(mode, person.name)
+            )
           }
           onCancel={() => setMode(null)}
         />

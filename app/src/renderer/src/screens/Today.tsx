@@ -3,6 +3,7 @@ import { kew, useQuery } from '../api'
 import { router } from '../router'
 import { plainError, status } from '../lib/actions'
 import { addDays, friendlyDate, isoDate, longDate } from '../lib/dates'
+import { toastText, toasts } from '../lib/toast'
 import type { RecordDetail, RecordSummary, Schema, TodayPerson } from '../../../shared/api'
 import { Button } from '../components/Button'
 import { Chip } from '../components/Chip'
@@ -18,16 +19,21 @@ function useRow(): {
   setMode(m: Mode): void
   error: string | null
   busy: boolean
-  run(fn: () => Promise<unknown>): void
+  /** Runs a write; on success closes the form and shows `done` as a toast. */
+  run(fn: () => Promise<unknown>, done?: string): void
 } {
   const [mode, setMode] = useState<Mode>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const run = (fn: () => Promise<unknown>): void => {
+  const run = (fn: () => Promise<unknown>, done?: string): void => {
     setError(null)
     setBusy(true)
     status.run(fn).then(
-      () => (setBusy(false), setMode(null)),
+      () => {
+        setBusy(false)
+        setMode(null)
+        if (done) toasts.show(done)
+      },
       (e) => (setBusy(false), setError(plainError(e)))
     )
   }
@@ -77,7 +83,10 @@ function PersonRow({
   const row = useRow()
   const { person, company, state } = item
   const log = (dir: 'out' | 'in') => (channel: string, text: string) =>
-    row.run(() => kew.logOutreach(person.id, { dir, channel, text }))
+    row.run(
+      () => kew.logOutreach(person.id, { dir, channel, text }),
+      toastText.logged(dir, person.name)
+    )
   return (
     <li className="row" aria-busy={row.busy}>
       <div className="row-main">
@@ -100,7 +109,12 @@ function PersonRow({
             Log send
           </Button>
           {!owed && <Button onClick={() => row.setMode('reply')}>Log reply</Button>}
-          <SnoozeMenu today={today} onSnooze={(d) => row.run(() => kew.snooze(person.id, d))} />
+          <SnoozeMenu
+            today={today}
+            onSnooze={(d) =>
+              row.run(() => kew.snooze(person.id, d), toastText.snoozed(person.name, d, today))
+            }
+          />
         </div>
       )}
       {(row.mode === 'send' || row.mode === 'reply') && (
@@ -142,7 +156,14 @@ function ReachOutRow({
         </p>
       </div>
       <div className="row-actions">
-        <Button onClick={() => row.run(() => kew.snooze(company.id, addDays(today, 7)))}>
+        <Button
+          onClick={() =>
+            row.run(
+              () => kew.snooze(company.id, addDays(today, 7)),
+              toastText.snoozed(company.name, addDays(today, 7), today)
+            )
+          }
+        >
           Push a week
         </Button>
       </div>
@@ -184,7 +205,10 @@ function InboundRow({
           <Button
             variant="primary"
             onClick={() =>
-              row.run(() => kew.setFields(company.id, { pipeline_status: 'pursuing' }))
+              row.run(
+                () => kew.setFields(company.id, { pipeline_status: 'pursuing' }),
+                toastText.moved(company.name, optionLabel(schema, 'pipeline_status', 'pursuing'))
+              )
             }
           >
             Pursue
@@ -194,7 +218,9 @@ function InboundRow({
       )}
       {row.mode === 'pass' && (
         <PassForm
-          onSubmit={(reason) => row.run(() => kew.passCompany(company.id, reason))}
+          onSubmit={(reason) =>
+            row.run(() => kew.passCompany(company.id, reason), toastText.passed(company.name))
+          }
           onCancel={() => row.setMode(null)}
         />
       )}

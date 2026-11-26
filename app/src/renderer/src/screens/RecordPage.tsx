@@ -9,6 +9,7 @@ import { splitProblems } from '../lib/properties'
 import { useFlushOnLeave } from '../lib/use-flush'
 import { EMPTY } from '../lib/dates'
 import { unwrap } from '../lib/pipeline'
+import { toastText, toasts } from '../lib/toast'
 import { nameProblem } from '../../../shared/names'
 import type { FieldDef, FieldValue, RecordDetail, RecordType } from '../../../shared/api'
 import { Button } from '../components/Button'
@@ -419,7 +420,10 @@ export function RecordPage({ id }: { id: string }): React.JSX.Element {
           name={record.name}
           onSubmit={(reason) => {
             setPassing(false)
-            run(() => status.run(() => kew.passCompany(record.id, reason)))
+            run(async () => {
+              await status.run(() => kew.passCompany(record.id, reason))
+              toasts.show(toastText.passed(record.name))
+            })
           }}
           onCancel={() => setPassing(false)}
         />

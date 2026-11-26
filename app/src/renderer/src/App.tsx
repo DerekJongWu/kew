@@ -5,6 +5,8 @@ import { plainError, status, undoTarget } from './lib/actions'
 import { isEditable } from './lib/editable'
 import { redoInEditor, undoInEditor } from './lib/note-editor'
 import { flushes } from './lib/flush'
+import { toasts } from './lib/toast'
+import { ToastHost } from './components/ToastHost'
 import { Button } from './components/Button'
 import { DESTINATIONS, SETTINGS } from './lib/destinations'
 import { Sidebar } from './components/Sidebar'
@@ -24,6 +26,7 @@ import { SettingsVault } from './screens/SettingsVault'
 
 /** ⌘Z (Edit > Undo in the app menu): undo the newest action. Failures land in the status line in plain words. */
 async function undoLast(): Promise<void> {
+  toasts.dismiss()
   await status
     .run(async () => {
       const target = undoTarget(await kew.history(20))
@@ -169,6 +172,7 @@ function App(): React.JSX.Element {
         />
       )}
       {newType && <NewRecordDialog key={newType} type={newType} onClose={() => setNewType(null)} />}
+      <ToastHost onUndo={undoLast} />
     </div>
   )
 }

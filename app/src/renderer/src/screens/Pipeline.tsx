@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { kew, useQuery } from '../api'
 import { router, useRoute } from '../router'
 import { plainError, status } from '../lib/actions'
+import { toastText, toasts } from '../lib/toast'
 import {
   addView,
   boardColumns,
@@ -82,11 +83,12 @@ export function Pipeline(): React.JSX.Element {
     })
   }
 
-  const run = (id: string, fn: () => Promise<unknown>): void => {
+  const run = (id: string, fn: () => Promise<unknown>, done: string): void => {
     setError(null)
     setPending((s) => new Set(s).add(id))
     status
       .run(fn)
+      .then(() => toasts.show(done))
       .catch((e) => setError(plainError(e)))
       .finally(() =>
         setPending((s) => {
@@ -102,7 +104,14 @@ export function Pipeline(): React.JSX.Element {
     if (!groupField) return
     const action = dropAction(groupField, from, to)
     if (action.kind === 'set')
-      run(rec.id, () => kew.setFields(rec.id, { [groupField.key]: action.value }))
+      run(
+        rec.id,
+        () => kew.setFields(rec.id, { [groupField.key]: action.value }),
+        toastText.moved(
+          rec.name,
+          groupField.options?.find((o) => o.value === action.value)?.label ?? action.value
+        )
+      )
     else if (action.kind === 'pass') setPassing(rec)
   }
 
@@ -218,7 +227,7 @@ export function Pipeline(): React.JSX.Element {
           onSubmit={(reason) => {
             const rec = passing
             setPassing(null)
-            run(rec.id, () => kew.passCompany(rec.id, reason))
+            run(rec.id, () => kew.passCompany(rec.id, reason), toastText.passed(rec.name))
           }}
           onCancel={() => setPassing(null)}
         />

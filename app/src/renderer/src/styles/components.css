@@ -2215,3 +2215,56 @@ button.timeline-text {
 .prop-date-empty {
   color: var(--text-3);
 }
+
+/* ---------- Toast ---------- */
+
+/* One toast, bottom centre of the main pane. Fixed to the window: rendered at the app root. */
+.toast-host {
+  position: fixed;
+  bottom: var(--s-5);
+  left: calc(50% + var(--sidebar-w) / 2);
+  z-index: 40;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(560px, calc(100vw - var(--sidebar-w) - 2 * var(--s-4)));
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pop);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  color: var(--text);
+  pointer-events: auto;
+  animation: toast-in var(--t-med) var(--ease);
+}
+.toast-text {
+  min-width: 0;
+  overflow-wrap: anywhere; /* names wrap, never truncate */
+}
+.toast-undo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s-2);
+  height: var(--control-h);
+  padding: 0 var(--s-2);
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--accent-text);
+  font-weight: var(--weight-medium);
+}
+.toast-undo:hover {
+  background: var(--accent-soft);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
