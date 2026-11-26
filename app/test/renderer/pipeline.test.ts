@@ -4,6 +4,7 @@ import {
   boardColumns,
   canDeleteView,
   dropAction,
+  moveTargets,
   filterableFields,
   nextSort,
   removeView,
@@ -66,6 +67,27 @@ describe('boardColumns', () => {
       rows.slice(0, 3)
     )
     expect(cols.map((c) => c.value)).toEqual(['new', 'pursuing', 'reached-out', 'no-reply'])
+  })
+})
+
+describe('moveTargets', () => {
+  it("offers every stage in the schema, closed ones included, even when the view shows fewer columns", () => {
+    const shown = boardColumns(view({ pipeline_status: ['new', 'pursuing'] }), status, [])
+    expect(shown.map((c) => c.value)).toEqual(['new', 'pursuing'])
+    const targets = moveTargets(status, 'new')
+    expect(targets.map((t) => t.value)).toEqual(
+      status.options!.map((o) => o.value).filter((v) => v !== 'new')
+    )
+    expect(targets.map((t) => t.value)).toEqual(
+      expect.arrayContaining(['active', 'passed', 'archived', 'revisit'])
+    )
+    expect(targets.find((t) => t.value === 'passed')?.label).toBe(
+      status.options!.find((o) => o.value === 'passed')!.label
+    )
+  })
+  it('offers every stage to a card with no value and leaves out the current one case-insensitively', () => {
+    expect(moveTargets(status, '')).toHaveLength(status.options!.length)
+    expect(moveTargets(status, 'Active').some((t) => t.value === 'active')).toBe(false)
   })
 })
 

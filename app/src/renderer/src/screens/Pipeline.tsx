@@ -186,6 +186,7 @@ export function Pipeline(): React.JSX.Element {
               groupField?.options ? (
                 <Board
                   columns={boardColumns(view, groupField, rows)}
+                  groupField={groupField}
                   fields={fieldMap}
                   pending={pending}
                   onOpen={openRecord}

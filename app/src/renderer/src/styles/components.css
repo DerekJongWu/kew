@@ -1005,12 +1005,40 @@
 }
 
 /* Board */
+.board-wrap {
+  position: relative;
+}
+/* A fade over an edge that has more columns beyond it. Popovers (z-index 20) stay above it. */
+.board-wrap::before,
+.board-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 56px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--t-med) var(--ease);
+}
+.board-wrap::before {
+  left: 0;
+  background: linear-gradient(to left, transparent, var(--bg));
+}
+.board-wrap::after {
+  right: 0;
+  background: linear-gradient(to right, transparent, var(--bg));
+}
+.board-wrap.fade-left::before,
+.board-wrap.fade-right::after {
+  opacity: 1;
+}
 .board {
   display: flex;
   gap: var(--s-3);
   align-items: flex-start;
   overflow-x: auto;
-  padding-bottom: 200px; /* room for a card's Move to… menu under the last card */
+  padding-bottom: 280px; /* room for a card's Move to… menu (every stage) under the last card */
 }
 .col {
   flex: 0 0 264px;

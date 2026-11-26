@@ -44,6 +44,16 @@ export function boardColumns(view: ViewDef, field: FieldDef, rows: RecordSummary
   return other.rows.length ? [...cols, other] : cols
 }
 
+/**
+ * "Move to…" on a card: every option of the group field in schema order (closed stages such as
+ * Passed included), not just the columns the view shows, minus the card's own value.
+ */
+export function moveTargets(field: FieldDef, current: string): { value: string; label: string }[] {
+  return (field.options ?? [])
+    .filter((o) => norm(o.value) !== norm(current))
+    .map((o) => ({ value: o.value, label: o.label }))
+}
+
 export type DropAction = { kind: 'none' } | { kind: 'set'; value: string } | { kind: 'pass' }
 
 /** What dropping a card on `to` does. Only passing a company in the pipeline asks for a reason. */

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -10,7 +10,34 @@ import {
 } from '@dnd-kit/core'
 import type { FieldDef, RecordSummary } from '../../../shared/api'
 import type { Column } from '../lib/pipeline'
+import { moveTargets } from '../lib/pipeline'
 import { BoardCard, CardBody } from './BoardCard'
+
+/** Which edges of a horizontal scroller have more columns beyond them. */
+function useOverflowEdges(
+  ref: React.RefObject<HTMLElement | null>,
+  dep: unknown
+): { left: boolean; right: boolean } {
+  const [edges, setEdges] = useState({ left: false, right: false })
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = (): void => {
+      const left = el.scrollLeft > 1
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+      setEdges((e) => (e.left === left && e.right === right ? e : { left, right }))
+    }
+    measure()
+    el.addEventListener('scroll', measure, { passive: true })
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', measure)
+      ro.disconnect()
+    }
+  }, [ref, dep])
+  return edges
+}
 
 function BoardColumn({
   column,
@@ -38,15 +65,20 @@ function BoardColumn({
   )
 }
 
-/** Columns of cards. Dropping a card on another column (or choosing "Move to…") calls onMove. */
+/**
+ * Columns of cards. Dropping a card on another column (or choosing "Move to…", which offers every
+ * value of the group field) calls onMove. An edge fades while more columns lie beyond it.
+ */
 export function Board({
   columns,
+  groupField,
   fields,
   pending,
   onOpen,
   onMove
 }: {
   columns: Column[]
+  groupField: FieldDef
   fields: Record<string, FieldDef | undefined>
   pending: Set<string>
   onOpen(id: string): void
@@ -54,9 +86,8 @@ export function Board({
 }): React.JSX.Element {
   const [dragging, setDragging] = useState<RecordSummary | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-  const targets = columns
-    .filter((c) => c.value !== '')
-    .map((c) => ({ value: c.value, label: c.label }))
+  const scroller = useRef<HTMLDivElement>(null)
+  const edges = useOverflowEdges(scroller, columns.length)
   const find = (id: string): { rec: RecordSummary; from: string } | null => {
     for (const c of columns) {
       const rec = c.rows.find((r) => r.id === id)
@@ -76,23 +107,26 @@ export function Board({
       onDragEnd={onEnd}
       onDragCancel={() => setDragging(null)}
     >
-      <div className="board">
-        {columns.map((c) => (
-          <BoardColumn key={c.value || 'none'} column={c}>
-            {c.rows.map((r) => (
-              <BoardCard
-                key={r.id}
-                record={r}
-                fields={fields}
-                pending={pending.has(r.id)}
-                currentValue={c.value}
-                targets={targets}
-                onOpen={onOpen}
-                onMove={(_id, to) => onMove(r, c.value, to)}
-              />
-            ))}
-          </BoardColumn>
-        ))}
+      <div
+        className={`board-wrap${edges.left ? ' fade-left' : ''}${edges.right ? ' fade-right' : ''}`}
+      >
+        <div className="board" ref={scroller}>
+          {columns.map((c) => (
+            <BoardColumn key={c.value || 'none'} column={c}>
+              {c.rows.map((r) => (
+                <BoardCard
+                  key={r.id}
+                  record={r}
+                  fields={fields}
+                  pending={pending.has(r.id)}
+                  targets={moveTargets(groupField, c.value)}
+                  onOpen={onOpen}
+                  onMove={(_id, to) => onMove(r, c.value, to)}
+                />
+              ))}
+            </BoardColumn>
+          ))}
+        </div>
       </div>
       <DragOverlay>
         {dragging && (

@@ -42,7 +42,6 @@ export function BoardCard({
   record,
   fields,
   pending,
-  currentValue,
   targets,
   onOpen,
   onMove
@@ -50,7 +49,7 @@ export function BoardCard({
   record: RecordSummary
   fields: Record<string, FieldDef | undefined>
   pending: boolean
-  currentValue: string
+  /** Every value the card can move to (its own excluded). */
   targets: MoveTarget[]
   onOpen(id: string): void
   onMove(id: string, to: string): void
@@ -80,18 +79,16 @@ export function BoardCard({
           >
             {(close) => (
               <div className="menu">
-                {targets
-                  .filter((t) => t.value !== currentValue)
-                  .map((t) => (
-                    <button
-                      key={t.value}
-                      type="button"
-                      className="menu-item"
-                      onClick={() => (close(), onMove(record.id, t.value))}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
+                {targets.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    className="menu-item"
+                    onClick={() => (close(), onMove(record.id, t.value))}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
             )}
           </Popover>
