@@ -15,7 +15,7 @@ import type { FieldDef, RecordSummary, ViewDef } from '../../../shared/api'
 import { Board } from '../components/Board'
 import { DataTable } from '../components/DataTable'
 import { EmptyState } from '../components/EmptyState'
-import { FilterBar, type FilterOption } from '../components/FilterBar'
+import { FilterMenu, type FilterOption } from '../components/FilterBar'
 import { createViewsStore } from '../lib/views-store'
 import { PassDialog } from '../components/PassDialog'
 import { ViewTabs } from '../components/ViewTabs'
@@ -158,7 +158,7 @@ export function Pipeline(): React.JSX.Element {
             }}
           />
           <div className="pipeline-tools">
-            <FilterBar
+            <FilterMenu
               fields={typeDef.fields}
               filters={view.filters}
               optionsFor={optionsFor}

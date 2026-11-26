@@ -969,13 +969,48 @@
   padding: var(--s-1);
   border: 0;
 }
+.filter-menu {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  max-height: min(480px, 64vh);
+}
+.filter-menu-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.filter-menu .filter-list {
+  max-height: none;
+  overflow: visible;
+}
+.filter-menu .filter-list + .filter-list {
+  border-top: 1px solid var(--line-soft);
+}
+.filter-legend {
+  padding: var(--s-2) var(--s-2) var(--s-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-2);
+}
+.filter-menu-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--s-2) var(--s-2) var(--s-1);
+  border-top: 1px solid var(--line);
+}
+.filter-menu-foot .link:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
 .filter-item {
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  height: 28px;
-  padding: 0 var(--s-2);
+  min-height: 28px;
+  padding: 4px var(--s-2);
   border-radius: var(--r-control);
+  overflow-wrap: anywhere; /* names wrap, never truncate */
 }
 .filter-item:hover {
   background: var(--hover);
