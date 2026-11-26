@@ -1,6 +1,6 @@
 // One property row: label + an inline editor for the field's type. Saves on commit (blur, Return,
 // or a selection); clearing a value sends null. Errors from the vault show under the control.
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { FieldDef, FieldValue } from '../../../shared/api'
 import { plainError } from '../lib/actions'
 import { displayValue, httpsHref, listValue, saveDraft } from '../lib/properties'
@@ -160,12 +160,28 @@ function TextInput({
   // Returns the write, so a flush (window close, quit) waits for it to finish.
   const save = (): Promise<void> => saveDraft(draft, saved, sent, commit)
   useFlushOnLeave(save)
+  // Long values (a LinkedIn URL, an email) wrap and the box grows to show all of it.
+  const area = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = area.current
+    if (!el) return
+    const fit = (): void => {
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(el.scrollHeight + 2, 0)}px`
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [draft])
   const href = field.type === 'url' ? httpsHref(saved) : null
   return (
     <div className="prop-inline">
-      <input
+      <textarea
+        ref={area}
         id={id}
-        className="field prop-field"
+        className="field prop-field prop-wrap"
+        rows={1}
         inputMode={field.type === 'number' ? 'decimal' : undefined}
         value={draft}
         spellCheck={field.type === 'text'}
@@ -173,7 +189,7 @@ function TextInput({
         aria-describedby={describedBy}
         placeholder="Empty"
         onFocus={() => (editing.current = true)}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => setDraft(e.target.value.replace(/\n/g, ' '))}
         onBlur={() => {
           editing.current = false
           void save()

@@ -351,8 +351,8 @@ async function openRecord(win, name) {
 const setProp = (win, label, value, event = 'change') =>
   js(win, `(() => {
     const row = [...document.querySelectorAll('.prop')].find((r) => r.querySelector('.prop-label')?.textContent === ${JSON.stringify(label)})
-    const el = row.querySelector('select, input')
-    const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+    const el = row.querySelector('select, input, textarea')
+    const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(value)})
     el.dispatchEvent(new Event(${JSON.stringify(event)}, { bubbles: true }))
     return true
@@ -448,7 +448,7 @@ async function records(win) {
 
   // Rename a linked record: every link to it is rewritten.
   await openRecord(win, 'Orchard Signal')
-  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, 'Orchard Signal Works'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(i, 'Orchard Signal Works'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   await sleep(200)
   key(win, 'Return')
   await sleep(1500)
@@ -457,7 +457,7 @@ async function records(win) {
   log('rename: Pinemoth body link updated:', co().includes('[[Orchard Signal Works]]'))
   log('rename: title shows:', await js(win, `document.querySelector('.record-title').value`), '| history:', (await historyTop(win))[0].message)
   // Name rule shown inline.
-  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, 'Bad/Name'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(i, 'Bad/Name'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   await sleep(200)
   key(win, 'Return')
   await sleep(300)
@@ -574,7 +574,7 @@ async function fixes(win) {
   writeAny('Companies', 'Handmade Co', '---\ntype: company\nname: Handmade Co\n---\nWritten in another app.\n')
   await sleep(1500)
   await openRecord(win, 'Handmade Co')
-  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, 'Handmade Two'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+  await js(win, `(() => { const i = document.querySelector('.record-title'); i.focus(); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(i, 'Handmade Two'); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
   await sleep(200)
   key(win, 'Return')
   await sleep(1500)

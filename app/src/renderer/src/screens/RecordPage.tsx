@@ -1,6 +1,6 @@
 // One record: title, properties, the note body, and what links here. Companies add their team,
 // status and pass flow; people add the outreach card and log; themes list their companies.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { kew, useQuery } from '../api'
 import { router } from '../router'
 import { plainError, status } from '../lib/actions'
@@ -31,6 +31,20 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
   const [draft, setDraft] = useState(record.name)
   const [error, setError] = useState<string | null>(null)
   const editing = useRef(false)
+  const area = useRef<HTMLTextAreaElement>(null)
+  // Grow to fit the wrapped name, on every edit and whenever the width changes.
+  useLayoutEffect(() => {
+    const el = area.current
+    if (!el) return
+    const fit = (): void => {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight + 2}px` // + the 1px border top and bottom
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [draft])
   const sent = useRef<string | null>(null) // the name last sent, so leaving after a blur doesn't resend
   useEffect(() => {
     sent.current = null
@@ -64,15 +78,17 @@ function Title({ record }: { record: RecordDetail }): React.JSX.Element {
   useFlushOnLeave(save)
   return (
     <div className="record-title-wrap">
-      <input
+      <textarea
+        ref={area}
         className="screen-title record-title"
         aria-label="Name"
+        rows={1}
         value={draft}
         spellCheck={false}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? 'record-title-err' : undefined}
         onFocus={() => (editing.current = true)}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => setDraft(e.target.value.replace(/\n/g, ' '))}
         onBlur={() => {
           editing.current = false
           void save()
@@ -367,22 +383,20 @@ export function RecordPage({ id }: { id: string }): React.JSX.Element {
           </div>
         </>
       ) : record.type === 'person' ? (
-        <div className="record-grid">
+        <div className="record-grid record-grid-props">
           <div className="record-main">
             <OutreachCard person={record} />
             <OutreachLog events={record.outreach?.events ?? []} />
             {notes}
           </div>
-          <aside className="record-side">
-            {properties(false)}
-            {backlinks}
-          </aside>
+          <div className="record-props">{properties(false)}</div>
+          <aside className="record-side">{backlinks}</aside>
         </div>
       ) : (
-        <div className="record-grid">
+        <div className="record-grid record-grid-props">
           <div className="record-main">{notes}</div>
+          <div className="record-props">{properties(false)}</div>
           <aside className="record-side">
-            {properties(false)}
             {record.type === 'theme' && <ThemeCompanies name={record.name} />}
             {backlinks}
           </aside>

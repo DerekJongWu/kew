@@ -100,12 +100,13 @@ export function DataTable({
             return (
               <div
                 key={r.id}
+                ref={virt.measureElement}
+                data-index={v.index}
                 role="row"
                 aria-rowindex={v.index + 2}
                 className="dtable-row dtable-body"
                 style={{
                   gridTemplateColumns: template,
-                  height: ROW_H,
                   transform: `translateY(${v.start}px)`
                 }}
                 onClick={() => onOpen(r.id)}
