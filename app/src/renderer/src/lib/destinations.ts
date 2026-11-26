@@ -39,3 +39,12 @@ export const TYPE_LABEL: Record<RecordType, string> = {
   theme: 'Theme',
   research: 'Research'
 }
+
+/** Lower-case plural for sentences: "Search companies". */
+export const TYPE_PLURAL: Record<RecordType, string> = {
+  company: 'companies',
+  person: 'people',
+  meeting: 'meetings',
+  theme: 'themes',
+  research: 'research'
+}

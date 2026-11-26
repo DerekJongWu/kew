@@ -1,6 +1,7 @@
 // Inline forms used by list rows: log an outreach event, snooze, pass with a reason.
 import { useId, useState } from 'react'
 import { addDays } from '../lib/dates'
+import { logEntryText } from '../lib/outreach-log'
 import { Button } from './Button'
 import { Popover } from './Popover'
 
@@ -28,7 +29,7 @@ export function LogForm({
       className="inline-form"
       onSubmit={(e) => {
         e.preventDefault()
-        if (text.trim()) onSubmit(channel, text.trim())
+        onSubmit(channel, logEntryText(dir, text))
       }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -61,9 +62,11 @@ export function LogForm({
         autoFocus
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={dir === 'out' ? 'What you sent, in a line' : 'What they said, in a line'}
+        placeholder={
+          dir === 'out' ? 'What you sent, in a line (optional)' : 'What they said, in a line (optional)'
+        }
       />
-      <Button type="submit" variant="primary" disabled={!text.trim()}>
+      <Button type="submit" variant="primary">
         {dir === 'out' ? 'Log send' : 'Log reply'}
       </Button>
       <Button variant="ghost" onClick={onCancel}>
