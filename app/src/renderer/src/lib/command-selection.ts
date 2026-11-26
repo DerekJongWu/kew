@@ -9,7 +9,10 @@ export interface SelectionInput {
   q: string
 }
 
-/** The id of the "Search notes for …" item, shown after the record hits whenever the query is non-empty. */
+/**
+ * The id of the "Search notes for …" item, pinned as the first row whenever the query is non-empty.
+ * It is only the default when no record or command matches: Return opens the best record.
+ */
 export const SEARCH_ITEM = 'search-notes'
 
 /** The item Return should act on when the user hasn't moved the highlight. */

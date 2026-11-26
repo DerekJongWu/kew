@@ -231,21 +231,51 @@ export function detail(db: Db, schema: Schema, id: string, root: string, date: s
   return out
 }
 
+/** Lower-cased words of `s` joined by single spaces: "O'Brien & Co" → "o brien co". */
+const words = (s: string): string => (s.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).join(' ')
+
+/**
+ * ⌘K and full-text search. Records whose name matches come first, ranked: exact name (or alias),
+ * name prefix, a word in the name (or an alias) starting with each term, then the name containing
+ * the text anywhere. Notes that match only in their body follow, by FTS rank.
+ */
 export function search(db: Db, text: string, limit = 20): SearchHit[] {
   const terms = text.match(/[\p{L}\p{N}]+/gu) ?? []
-  if (terms.length === 0) return []
-  const match = terms.map((t) => `"${t}"*`).join(' ')
-  // Name matches first (exact, prefix, contains), then body-only matches; FTS rank breaks ties.
-  // The terms are letters and digits only, so they are safe inside LIKE.
+  if (terms.length === 0 || limit <= 0) return []
   const phrase = terms.join(' ').toLowerCase()
-  const rows = db.all<RecRow & { snip: string }>(
-    `SELECT r.*, snippet(fts, -1, char(57344), char(57345), '…', 12) AS snip FROM fts JOIN records r ON r.rowid = fts.rowid
-     WHERE fts MATCH ?
-     ORDER BY CASE WHEN lower(r.name) = ? THEN 0 WHEN lower(r.name) LIKE ? THEN 1
-                   WHEN lower(r.name) LIKE ? THEN 2 ELSE 3 END, rank LIMIT ?`,
-    match, phrase, `${phrase}%`, `%${phrase}%`, limit)
+  const match = terms.map((t) => `"${t}"*`).join(' ')
+  const snip = `snippet(fts, -1, char(57344), char(57345), '…', 12) AS snip`
+  type Hit = RecRow & { snip: string; rank: number }
+  // Every term is a prefix of a word in the name or an alias (FTS tokenises on words).
+  const named = db.all<Hit>(
+    `SELECT r.*, ${snip}, rank FROM fts JOIN records r ON r.rowid = fts.rowid
+     WHERE fts MATCH ? ORDER BY rank`, `{name aliases} : (${match})`)
+  // The name contains the text inside a word ("orchard" in "Borchardt"). The terms are letters and
+  // digits only, so they are safe inside LIKE.
+  const seen = new Set(named.map((r) => r.id))
+  const inside = db
+    .all<RecRow>('SELECT * FROM records WHERE lower(name) LIKE ? ORDER BY path', `%${phrase}%`)
+    .filter((r) => !seen.has(r.id))
+    .map((r) => ({ ...r, snip: '', rank: 0 }))
+  const tier = (r: Hit): number => {
+    const name = words(r.name)
+    const aliases = aliasesOf(JSON.parse(r.fields) as Record<string, FieldValue>).map(words)
+    if (name === phrase || aliases.includes(phrase)) return 0
+    if (name.startsWith(phrase)) return 1
+    return seen.has(r.id) ? 2 : 3
+  }
+  const byName = [...named, ...inside]
+    .map((r) => ({ r, t: tier(r) }))
+    .sort((a, b) => a.t - b.t || a.r.name.length - b.r.name.length || a.r.name.localeCompare(b.r.name))
+    .map((x) => x.r)
+  for (const r of inside) seen.add(r.id)
+  const body = byName.length >= limit ? [] : db
+    .all<Hit>(
+      `SELECT r.*, ${snip}, rank FROM fts JOIN records r ON r.rowid = fts.rowid
+       WHERE fts MATCH ? ORDER BY rank LIMIT ?`, match, limit + seen.size)
+    .filter((r) => !seen.has(r.id))
   const sum = summarizer(db)
-  return rows.map((r) => ({ record: sum(r), snippet: r.snip }))
+  return [...byName, ...body].slice(0, limit).map((r) => ({ record: sum(r), snippet: r.snip }))
 }
 
 export function findDuplicates(db: Db, type: RecordType, name: string, fields: Record<string, FieldValue>): DuplicateHit[] {

@@ -93,8 +93,8 @@ export function CommandBar({
   const shownHits = !q.trim() ? [] : hits
   const needle = q.trim().toLowerCase()
   const shown = commands.filter((c) => c.label.toLowerCase().includes(needle))
-  // Item order matters: cmdk moves the highlight to the first item when the query changes, so
-  // the order is records, commands, then "Search notes" and defaultSelection mirrors it.
+  // "Search notes for …" is pinned as the first row whenever there is a query; records (best
+  // match first) and commands follow. Return still acts on the best record (see defaultSelection).
   // The highlight follows the list: a pick made with the mouse or arrows holds only until the
   // query or the (asynchronously arriving) hits change, then resets to the first record hit.
   const sel = { creating: false, dupes: null, hits: shownHits, commands: shown, q }
@@ -133,6 +133,16 @@ export function CommandBar({
         <Command.List className="cmdk-list">
           <>
             <Command.Empty className="cmdk-empty">Nothing matches “{q.trim()}”.</Command.Empty>
+            {needle && (
+              <Command.Item
+                className="cmdk-search-item"
+                value={SEARCH_ITEM}
+                onSelect={() => go({ name: 'search', q: q.trim() })}
+              >
+                <span className="cmdk-label">Search notes for “{q.trim()}”</span>
+                <Kbd>⌘⇧F</Kbd>
+              </Command.Item>
+            )}
             {shownHits.length > 0 && (
               <Command.Group heading="Records">
                 {shownHits.map((h) => (
@@ -155,17 +165,6 @@ export function CommandBar({
                     {c.hint && <Kbd>{c.hint}</Kbd>}
                   </Command.Item>
                 ))}
-              </Command.Group>
-            )}
-            {needle && (
-              <Command.Group heading="Notes">
-                <Command.Item
-                  value={SEARCH_ITEM}
-                  onSelect={() => go({ name: 'search', q: q.trim() })}
-                >
-                  <span className="cmdk-label">Search notes for “{q.trim()}”</span>
-                  <Kbd>⌘⇧F</Kbd>
-                </Command.Item>
               </Command.Group>
             )}
           </>

@@ -150,6 +150,46 @@ describe('search and duplicates', () => {
     expect(names(local.search('orchard', 2).map((h) => h.record))).toEqual(['Orchard', 'Orchard Signal'])
   })
 
+  describe('ranking', () => {
+    const local = openIndex(':memory:')
+    const add = (folder: string, type: string, name: string, extra = '', body = ''): void =>
+      local.indexFile(`${folder}/${name}.md`, `---\ntype: ${type}\nname: ${name}\n${extra}---\n${body}\n`, schema)
+    beforeAll(() => {
+      add('Research', 'research', 'Fruit', '', 'Orchard yields, orchard orchard orchard.')
+      add('Companies', 'company', 'Borchardt Labs')
+      add('Companies', 'company', 'Old Orchard Co')
+      add('Companies', 'company', 'Orchard Signal Holdings')
+      add('Companies', 'company', 'Orchard Signal', '', 'Signal startup.')
+      add('Companies', 'company', 'Orchard')
+      add('Companies', 'company', 'Greenfield Partners', 'aliases: [Grove]\n')
+      add('Research', 'research', 'Groves of Academe')
+    })
+    const ranked = (q: string, limit?: number): string[] => names(local.search(q, limit).map((h) => h.record))
+
+    it('puts the exact name first, then name prefixes, word prefixes, other name matches, then body-only', () => {
+      expect(ranked('orchard')).toEqual([
+        'Orchard', // exact
+        'Orchard Signal', // name prefix, shorter first
+        'Orchard Signal Holdings',
+        'Old Orchard Co', // a word in the name starts with it
+        'Borchardt Labs', // the name contains it
+        'Fruit' // only the body matches
+      ])
+    })
+    it('treats an alias as an exact match and matches every term as a word prefix', () => {
+      expect(ranked('grove')[0]).toBe('Greenfield Partners')
+      expect(ranked('grove')).toContain('Groves of Academe')
+      expect(ranked('orch sig')).toEqual(['Orchard Signal', 'Orchard Signal Holdings'])
+      expect(ranked('signal holdings')[0]).toBe('Orchard Signal Holdings')
+    })
+    it('ranks body-only matches after every name match and honours the limit', () => {
+      expect(ranked('signal')).toEqual(['Orchard Signal', 'Orchard Signal Holdings']) // no repeat from the body
+      expect(ranked('startup')).toEqual(['Orchard Signal'])
+      expect(ranked('orchard', 2)).toEqual(['Orchard', 'Orchard Signal'])
+      expect(ranked('orchard', 0)).toEqual([])
+    })
+  })
+
   it('finds duplicates by name, alias, domain and linkedin', () => {
     const d = idx.findDuplicates('company', 'Quill Security Inc', { website: 'https://www.quill.example' })
     expect(d.map((x) => [x.record.name, x.reason])).toEqual([['Quill Security', 'name']])
