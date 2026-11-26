@@ -1732,7 +1732,11 @@
   margin-right: auto;
 }
 .editor-missing {
+  position: sticky;
+  bottom: var(--s-4);
+  z-index: 2;
   margin: 0 var(--s-4) var(--s-3);
+  box-shadow: var(--shadow-pop);
 }
 .editor .cm-editor {
   min-height: 220px;
@@ -1816,6 +1820,17 @@
 .md-wikilink .md-mark,
 .md-wikilink .md-link {
   color: var(--accent-text);
+}
+/* A link to a record that doesn't exist yet. */
+.md-wikilink-missing,
+.md-wikilink-missing .md-mark,
+.md-wikilink-missing .md-link {
+  color: var(--text-2);
+}
+.md-wikilink-missing {
+  text-decoration-style: dashed;
+  text-decoration-color: var(--text-3);
+  cursor: pointer;
 }
 .cm-tooltip.cm-tooltip-autocomplete {
   padding: var(--s-1);

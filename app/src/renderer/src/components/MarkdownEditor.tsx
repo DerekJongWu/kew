@@ -15,13 +15,16 @@ export function MarkdownEditor({
   body,
   label,
   ref,
-  onOpenLink
+  onOpenLink,
+  onMissingLink
 }: {
   recordId: string
   body: string // the note body as last read from the vault
   label: string
   ref?: React.Ref<EditorHandle>
   onOpenLink(name: string): void
+  /** A click on a link whose record doesn't exist yet. */
+  onMissingLink(name: string): void
 }): React.JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const editor = useRef<NoteEditor | null>(null)
@@ -35,7 +38,8 @@ export function MarkdownEditor({
     const ed = new NoteEditor(host.current!, recordId, body, label, {
       onConflict: setConflict,
       onError: setError,
-      onOpenLink
+      onOpenLink,
+      onMissingLink
     })
     editor.current = ed
     const off = flushes.register(() => ed.flush())
@@ -48,8 +52,13 @@ export function MarkdownEditor({
   }, [recordId])
 
   useEffect(() => {
-    editor.current?.setEvents({ onConflict: setConflict, onError: setError, onOpenLink })
-  }, [onOpenLink])
+    editor.current?.setEvents({
+      onConflict: setConflict,
+      onError: setError,
+      onOpenLink,
+      onMissingLink
+    })
+  }, [onOpenLink, onMissingLink])
 
   useEffect(() => {
     editor.current?.incoming(body)

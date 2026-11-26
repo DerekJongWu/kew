@@ -1,7 +1,7 @@
 // The CodeMirror 6 editor behind MarkdownEditor: markdown styling, [[ completion, ⌘-click links,
 // autosave and reconciling with changes on disk. Kept outside React so the editor's own state
 // (timers, the body being saved) lives in one plain object.
-import { Annotation, EditorState, Transaction } from '@codemirror/state'
+import { Annotation, EditorState, StateEffect, StateField, Transaction } from '@codemirror/state'
 import {
   Decoration,
   EditorView,
@@ -26,7 +26,7 @@ import { kew } from '../api'
 import { plainError, status } from './actions'
 import { BodySync } from './body-sync'
 import { editorKeymap } from './editor-keys'
-import { linkAt, linkQuery, matchesName } from './wikilinks'
+import { isKnownLink, linkAt, linkQuery, matchesName } from './wikilinks'
 import { TYPE_LABEL } from './destinations'
 
 /** Marks transactions that load text from disk, so they don't count as the user's edits. */
@@ -46,25 +46,62 @@ const highlight = HighlightStyle.define([
   { tag: [tags.processingInstruction, tags.meta, tags.contentSeparator], class: 'md-mark' }
 ])
 
+/** Lower-cased names and aliases of every record; null until the first load. */
+const setNames = StateEffect.define<ReadonlySet<string>>()
+const knownNames = StateField.define<ReadonlySet<string> | null>({
+  create: () => null,
+  update: (v, tr) => tr.effects.reduce((acc, e) => (e.is(setNames) ? e.value : acc), v)
+})
+
+const linkMark = Decoration.mark({
+  class: 'md-wikilink',
+  attributes: { title: '⌘-click to open' }
+})
+// A link to a record that doesn't exist yet: dashed and muted; a click offers to create it.
+const missingMark = Decoration.mark({
+  class: 'md-wikilink md-wikilink-missing',
+  attributes: { title: 'No record with this name yet. Click to create it.' }
+})
+
+/** Whether the link `name` is known not to resolve (false while names are still loading). */
+const isMissing = (state: EditorState, name: string): boolean => {
+  const names = state.field(knownNames)
+  return names !== null && !isKnownLink(name, names)
+}
+
 const wikiLinks = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
     matcher = new MatchDecorator({
-      regexp: /\[\[[^\][\n|]+(\|[^\][\n]*)?\]\]/g,
-      decoration: Decoration.mark({
-        class: 'md-wikilink',
-        attributes: { title: '⌘-click to open' }
-      })
+      regexp: /\[\[([^\][\n|]+)(\|[^\][\n]*)?\]\]/g,
+      decoration: (m, view) => (isMissing(view.state, m[1]) ? missingMark : linkMark)
     })
     constructor(view: EditorView) {
       this.decorations = this.matcher.createDeco(view)
     }
     update(u: ViewUpdate): void {
-      this.decorations = this.matcher.updateDeco(u, this.decorations)
+      this.decorations =
+        u.startState.field(knownNames) !== u.state.field(knownNames)
+          ? this.matcher.createDeco(u.view)
+          : this.matcher.updateDeco(u, this.decorations)
     }
   },
   { decorations: (v) => v.decorations }
 )
+
+const RECORD_TYPES = ['company', 'person', 'meeting', 'theme', 'research'] as const
+
+/** Every record's name and aliases, lower-cased, for marking links that don't resolve. */
+async function loadNames(): Promise<Set<string>> {
+  const lists = await Promise.all(RECORD_TYPES.map((t) => kew.list(t)))
+  const out = new Set<string>()
+  for (const r of lists.flat()) {
+    out.add(r.name.trim().toLowerCase())
+    const aliases = Array.isArray(r.fields.aliases) ? r.fields.aliases : [r.fields.aliases]
+    for (const a of aliases) if (typeof a === 'string' && a.trim()) out.add(a.trim().toLowerCase())
+  }
+  return out
+}
 
 /** `[[` completion: records whose name or alias contains what's typed, from the vault's search. */
 async function completeLinks(ctx: CompletionContext): Promise<CompletionResult | null> {
@@ -122,8 +159,7 @@ function runInEditor(el: Element | null, command: (view: EditorView) => boolean)
 
 /** The id of the record a link names (by name or alias), or null when none exists. */
 export async function resolveLink(name: string): Promise<string | null> {
-  const types = ['company', 'person', 'meeting', 'theme', 'research'] as const
-  const lists = await Promise.all(types.map((t) => kew.list(t, { text: name })))
+  const lists = await Promise.all(RECORD_TYPES.map((t) => kew.list(t, { text: name })))
   return lists.flat().find((r) => matchesName(r, name))?.id ?? null
 }
 
@@ -131,12 +167,16 @@ export interface NoteEditorEvents {
   onConflict(diskBody: string | null): void
   onError(message: string | null): void
   onOpenLink(name: string): void
+  /** A click on a link whose record doesn't exist yet. */
+  onMissingLink(name: string): void
 }
 
 /** Owns one EditorView for one record; BodySync decides when to save and what to do with disk changes. */
 export class NoteEditor {
   readonly view: EditorView
   private sync: BodySync
+  private offChanged: () => void
+  private alive = true
 
   constructor(
     parent: HTMLElement,
@@ -170,6 +210,7 @@ export class NoteEditor {
           keymap.of(editorKeymap()),
           markdown(),
           syntaxHighlighting(highlight),
+          knownNames,
           wikiLinks,
           autocompletion({ override: [completeLinks], icons: false }),
           EditorView.lineWrapping,
@@ -181,21 +222,36 @@ export class NoteEditor {
           }),
           EditorView.domEventHandlers({
             blur: () => void this.sync.save(),
+            // ⌘-click opens a link. Any click on a link that doesn't resolve offers to create
+            // its record; a plain click still places the caret.
             mousedown: (e, v) => {
-              if (!e.metaKey) return false
+              if (e.button !== 0) return false
               const pos = v.posAtCoords({ x: e.clientX, y: e.clientY })
               if (pos === null) return false
               const line = v.state.doc.lineAt(pos)
               const link = linkAt(line.text, pos - line.from)
               if (!link) return false
+              const missing = isMissing(v.state, link.name)
+              if (missing) this.events.onMissingLink(link.name)
+              if (!e.metaKey) return false
               e.preventDefault()
-              this.events.onOpenLink(link.name)
+              if (!missing) this.events.onOpenLink(link.name)
               return true
             }
           })
         ]
       })
     })
+    this.refreshNames()
+    this.offChanged = kew.onChanged(() => this.refreshNames())
+  }
+
+  /** Reloads record names so links re-mark as records are created, renamed or deleted. */
+  private refreshNames(): void {
+    loadNames().then(
+      (names) => this.alive && this.view.dispatch({ effects: setNames.of(names) }),
+      () => undefined // keep the last marks; links still open or offer creation on ⌘-click
+    )
   }
 
   setEvents(events: NoteEditorEvents): void {
@@ -229,6 +285,8 @@ export class NoteEditor {
   /** Leaving the page: save what was typed (even with a conflict open), then tear down. */
   destroy(): Promise<void> {
     const saved = this.sync.flush()
+    this.alive = false
+    this.offChanged()
     this.sync.dispose()
     this.view.destroy()
     return saved

@@ -302,11 +302,13 @@ export function RecordPage({ id }: { id: string }): React.JSX.Element {
         label={`Notes on ${record.name}`}
         ref={editor}
         onOpenLink={openLink}
+        onMissingLink={setMissingLink}
       />
       {missingLink && (
-        <div className="editor-missing" role="status">
+        // Sticky, so the offer stays in sight at the bottom of the window in a long note.
+        <div className="editor-missing" role="status" aria-label={`Create ${missingLink}`}>
           <span>
-            No record is called <strong>{missingLink}</strong>. Create it as
+            Create <strong>“{missingLink}”</strong> as
           </span>
           {CREATE_TYPES.map((t) => (
             <Button key={t} className="btn-sm" onClick={() => setCreating(t)}>

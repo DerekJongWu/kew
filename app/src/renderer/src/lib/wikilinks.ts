@@ -22,6 +22,10 @@ export function linkQuery(before: string): { from: number; text: string } | null
   return m ? { from: m.index, text: m[1] } : null
 }
 
+/** Whether a link's target is among `names` (lower-cased record names and aliases). */
+export const isKnownLink = (name: string, names: ReadonlySet<string>): boolean =>
+  names.has(name.trim().toLowerCase())
+
 /** Whether a record's name or one of its aliases is `name` (case-insensitive). */
 export function matchesName(
   r: { name: string; fields: Record<string, FieldValue> },

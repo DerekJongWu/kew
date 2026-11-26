@@ -15,7 +15,7 @@ import {
   splitEmptyFields
 } from '../../src/renderer/src/lib/properties'
 import { BodySync, normalizeBody, reconcile } from '../../src/renderer/src/lib/body-sync'
-import { linkAt, linkQuery, matchesName } from '../../src/renderer/src/lib/wikilinks'
+import { isKnownLink, linkAt, linkQuery, matchesName } from '../../src/renderer/src/lib/wikilinks'
 import type { FieldDef } from '../../src/shared/api'
 
 const f = (key: string, type: FieldDef['type'] = 'text'): FieldDef => ({
@@ -23,6 +23,15 @@ const f = (key: string, type: FieldDef['type'] = 'text'): FieldDef => ({
   label: key,
   type,
   tier: 'starter'
+})
+
+describe('isKnownLink', () => {
+  it('matches a link to lower-cased record names and aliases, ignoring case and outer spaces', () => {
+    const names = new Set(['quill security', 'qs'])
+    expect(isKnownLink(' Quill Security ', names)).toBe(true)
+    expect(isKnownLink('QS', names)).toBe(true)
+    expect(isKnownLink('Nobody Here', names)).toBe(false)
+  })
 })
 
 describe('splitEmptyFields', () => {
