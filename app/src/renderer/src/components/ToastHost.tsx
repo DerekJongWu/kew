@@ -10,7 +10,7 @@ import { Kbd } from './Chip'
  */
 async function undoToasted(t: Toast & { entryId: string }): Promise<void> {
   try {
-    await flushes.flushAll()
+    await flushes.flushAll({ resolveConflicts: false }) // an open note conflict stays the user's call
     const decision = toastUndo(await kew.history(20), t.entryId)
     if ('reason' in decision) return toasts.settle(t.id, decision.reason)
     toasts.dismiss()

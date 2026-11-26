@@ -42,7 +42,7 @@ export function MarkdownEditor({
       onMissingLink
     })
     editor.current = ed
-    const off = flushes.register(() => ed.flush())
+    const off = flushes.register((o) => (o.resolveConflicts ? ed.flush() : ed.save()))
     return () => {
       off()
       void ed.destroy()

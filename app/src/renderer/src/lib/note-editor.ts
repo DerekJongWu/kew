@@ -201,7 +201,15 @@ export class NoteEditor {
         }),
       write: (text) => {
         this.ownWrites++
-        return status.run(() => kew.setBody(recordId, text)).then(() => undefined)
+        return status
+          .run(() => kew.setBody(recordId, text))
+          .then(
+            () => undefined,
+            (e) => {
+              this.ownWrites-- // a failed save sends no change event
+              throw e
+            }
+          )
       },
       onConflict: (c) => this.events.onConflict(c),
       onError: (e) => this.events.onError(e === null ? null : plainError(e)),
@@ -284,6 +292,10 @@ export class NoteEditor {
   }
   keepMine(): void {
     void this.sync.keepMine()
+  }
+  /** Save pending text now unless a conflict is open (that waits for the user's choice). */
+  save(): Promise<void> {
+    return this.sync.save()
   }
   /** Save now (window closing, leaving the page); never drops local text. */
   flush(): Promise<void> {

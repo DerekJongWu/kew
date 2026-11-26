@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Command } from 'cmdk'
 import { kew } from '../api'
 import { router } from '../router'
@@ -42,6 +42,7 @@ export function CommandBar({
   const [picked, setPicked] = useState<{ key: string; value: string } | null>(null)
   const [restore] = useState(() => document.activeElement) // focus goes back here on close
   const [intent] = useState(createPickIntent) // only arrow keys and the pointer pick a row
+  const pointerAt = useRef('')
   // cmdk moves its own highlight to the first row after each keystroke and only re-reads `value`
   // when the prop changes. To undo such a move, `value` is dropped for one render and restored in
   // a layout effect, before paint, so the highlight never visibly leaves the top record.
@@ -130,7 +131,13 @@ export function CommandBar({
           if (intent.accepts()) setPicked({ key, value: v })
           else if (v !== value) setResync(true)
         }}
-        onPointerMove={intent.navigated}
+        onPointerMoveCapture={(e) => {
+          // Only a real move picks: the browser also sends moves when rows shift under a
+          // resting pointer (results arriving), at the same coordinates.
+          const at = `${e.clientX},${e.clientY}`
+          if (at !== pointerAt.current) intent.navigated()
+          pointerAt.current = at
+        }}
         onKeyDown={(e) => {
           if (isNavigationKey(e)) intent.navigated()
           if (e.key === 'Escape') {
