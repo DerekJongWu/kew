@@ -1,0 +1,22 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-24T18:00:00Z"},
+  "title": "Kew Wireframes",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1280, "h": 800, "title": "Today", "expand": "fill", "is_interactive": true},
+    "Pipeline.dc.html": {"x": 1360, "y": 0, "w": 1280, "h": 800, "title": "Pipeline board", "expand": "fill", "is_interactive": true},
+    "Company.dc.html": {"x": 2720, "y": 0, "w": 1280, "h": 800, "title": "Company record + copilot", "expand": "fill", "is_interactive": true},
+    "Person.dc.html": {"x": 0, "y": 1200, "w": 1280, "h": 800, "title": "Person record", "expand": "fill", "is_interactive": true},
+    "Fields.dc.html": {"x": 1360, "y": 1200, "w": 1280, "h": 800, "title": "Settings: fields", "expand": "fill", "is_interactive": true},
+    "Capture.dc.html": {"x": 2720, "y": 1200, "w": 380, "h": 600, "title": "Browser button popup"},
+    "Diligence.dc.html": {"x": 4080, "y": 0, "w": 1280, "h": 800, "title": "Diligence workspace", "expand": "fill", "is_interactive": true}
+  },
+  "order": ["Main.dc.html", "Pipeline.dc.html", "Company.dc.html", "Diligence.dc.html", "Person.dc.html", "Fields.dc.html", "Capture.dc.html"],
+  "notes": {
+    "row1": {"x": 0, "y": -260, "text": "Core loop: Today → pipeline → company → diligence", "kind": "title1", "maxW": 5360},
+    "row2": {"x": 0, "y": 940, "text": "People, customization and capture", "kind": "title1", "maxW": 3100}
+  },
+  "designSystems": []
+}

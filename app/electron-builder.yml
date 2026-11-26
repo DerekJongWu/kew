@@ -1,0 +1,33 @@
+appId: app.kew.desktop
+productName: Kew
+directories:
+  buildResources: build
+# Only the built app. node:sqlite is part of Electron's Node, so there are no native modules to rebuild.
+files:
+  - out/**
+  - package.json
+npmRebuild: false
+mac:
+  category: public.app-category.business
+  icon: build/icon.icns
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  # Ad-hoc signed, not notarized (this slice). "-" signs without a certificate, which avoids the
+  # "app is damaged" error on Apple Silicon.
+  identity: '-'
+  hardenedRuntime: false
+  notarize: false
+  extendInfo:
+    NSDocumentsFolderUsageDescription: Kew keeps your vault in your Documents folder.
+  # Beta: Developer ID signing and notarization (needs an Apple Developer account). Replace the
+  # four ad-hoc lines above (identity, hardenedRuntime, notarize) with:
+  #   identity: 'Developer ID Application: <Name> (<TEAMID>)'
+  #   hardenedRuntime: true
+  #   gatekeeperAssess: false
+  #   entitlements: build/entitlements.mac.plist
+  #   entitlementsInherit: build/entitlements.mac.plist
+  #   notarize: true
+  # and export APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID before `npm run dist`.
+dmg:
+  artifactName: Kew-${version}-${arch}.${ext}

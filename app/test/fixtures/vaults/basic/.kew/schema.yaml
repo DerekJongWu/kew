@@ -1,0 +1,350 @@
+version: 1
+types:
+  company:
+    folder: Companies
+    template: Templates/Company.md
+    fields:
+      - key: id
+        label: ID
+        type: text
+        tier: system
+      - key: type
+        label: Type
+        type: text
+        tier: system
+      - key: name
+        label: Name
+        type: text
+        tier: system
+      - key: aliases
+        label: Aliases
+        type: multi-select
+        tier: system
+        options: []
+      - key: website
+        label: Website
+        type: url
+        tier: system
+      - key: pipeline_status
+        label: Pipeline status
+        type: stage
+        tier: system
+        options:
+          - value: new
+            label: New
+            category: new
+          - value: pursuing
+            label: Pursuing
+            category: in-progress
+          - value: reached-out
+            label: Reached out
+            category: in-progress
+          - value: no-reply
+            label: No reply
+            category: in-progress
+          - value: active
+            label: Active
+            category: active
+          - value: revisit
+            label: Revisit
+            category: closed
+          - value: passed
+            label: Passed
+            category: closed
+          - value: archived
+            label: Archived
+            category: closed
+      - key: source
+        label: Source
+        type: select
+        tier: starter
+        options:
+          - value: intro
+            label: Intro
+          - value: email
+            label: Email
+          - value: event
+            label: Event
+          - value: linkedin
+            label: LinkedIn
+          - value: inbound-form
+            label: Inbound form
+          - value: other
+            label: Other
+      - key: stage
+        label: Stage
+        type: select
+        tier: starter
+        options:
+          - value: pre-seed
+            label: Pre seed
+          - value: seed
+            label: Seed
+          - value: series-a
+            label: Series A
+          - value: series-b
+            label: Series B
+          - value: growth
+            label: Growth
+      - key: themes
+        label: Themes
+        type: relation
+        tier: starter
+        target: theme
+        multiple: true
+      - key: round_status
+        label: Round status
+        type: select
+        tier: starter
+        options:
+          - value: tracking
+            label: Tracking
+          - value: raising
+            label: Raising
+      - key: raise
+        label: Raise
+        type: text
+        tier: starter
+      - key: valuation
+        label: Valuation
+        type: text
+        tier: starter
+      - key: lead
+        label: Lead
+        type: text
+        tier: starter
+      - key: referred_by
+        label: Referred by
+        type: relation
+        tier: starter
+        target: person
+      - key: first_seen
+        label: First seen
+        type: date
+        tier: starter
+      - key: reach_out_on
+        label: Reach out on
+        type: date
+        tier: starter
+      - key: conviction
+        label: Conviction
+        type: select
+        tier: starter
+        options:
+          - value: high
+            label: High
+          - value: medium
+            label: Medium
+          - value: low
+            label: Low
+      - key: pass_reason
+        label: Pass reason
+        type: text
+        tier: starter
+      - key: deal_sheet
+        label: Deal sheet
+        type: select
+        tier: starter
+        options:
+          - value: yes
+            label: Yes
+          - value: sent
+            label: Sent
+  person:
+    folder: People
+    template: Templates/Person.md
+    fields:
+      - key: id
+        label: ID
+        type: text
+        tier: system
+      - key: type
+        label: Type
+        type: text
+        tier: system
+      - key: name
+        label: Name
+        type: text
+        tier: system
+      - key: met
+        label: Met
+        type: checkbox
+        tier: system
+      - key: company
+        label: Company
+        type: relation
+        tier: system
+        target: company
+      - key: linkedin
+        label: LinkedIn
+        type: url
+        tier: system
+      - key: email
+        label: Email
+        type: text
+        tier: system
+      - key: role
+        label: Role
+        type: text
+        tier: starter
+      - key: category
+        label: Category
+        type: select
+        tier: starter
+        options:
+          - value: founder
+            label: Founder
+          - value: vc
+            label: VC
+          - value: operator
+            label: Operator
+          - value: lp
+            label: LP
+          - value: other
+            label: Other
+      - key: channel
+        label: Channel
+        type: select
+        tier: starter
+        options:
+          - value: linkedin
+            label: LinkedIn
+          - value: email
+            label: Email
+      - key: cadence_days
+        label: Cadence (days)
+        type: number
+        tier: starter
+      - key: next_follow_up
+        label: Next follow-up
+        type: date
+        tier: starter
+  meeting:
+    folder: Meetings
+    template: Templates/Meeting.md
+    fields:
+      - key: id
+        label: ID
+        type: text
+        tier: system
+      - key: type
+        label: Type
+        type: text
+        tier: system
+      - key: name
+        label: Name
+        type: text
+        tier: system
+      - key: date
+        label: Date
+        type: date
+        tier: system
+      - key: company
+        label: Company
+        type: relation
+        tier: system
+        target: company
+      - key: attendees
+        label: Attendees
+        type: relation
+        tier: system
+        target: person
+        multiple: true
+      - key: meeting_type
+        label: Meeting type
+        type: select
+        tier: starter
+        options:
+          - value: intro
+            label: Intro
+          - value: follow-up
+            label: Follow up
+          - value: diligence
+            label: Diligence
+          - value: reference
+            label: Reference
+          - value: other
+            label: Other
+      - key: transcript
+        label: Transcript
+        type: text
+        tier: starter
+  theme:
+    folder: Themes
+    template: Templates/Theme.md
+    fields:
+      - key: id
+        label: ID
+        type: text
+        tier: system
+      - key: type
+        label: Type
+        type: text
+        tier: system
+      - key: name
+        label: Name
+        type: text
+        tier: system
+      - key: slug
+        label: Slug
+        type: text
+        tier: system
+      - key: living_topic
+        label: Living topic
+        type: checkbox
+        tier: starter
+  research:
+    folder: Research
+    template: Templates/Research.md
+    fields:
+      - key: id
+        label: ID
+        type: text
+        tier: system
+      - key: type
+        label: Type
+        type: text
+        tier: system
+      - key: name
+        label: Name
+        type: text
+        tier: system
+      - key: about
+        label: About
+        type: relation
+        tier: system
+        target: any
+        multiple: true
+      - key: topic
+        label: Topic
+        type: select
+        tier: system
+        options:
+          - value: team
+            label: Team
+          - value: market
+            label: Market
+          - value: financials
+            label: Financials
+          - value: product
+            label: Product
+          - value: references
+            label: References
+      - key: created
+        label: Created
+        type: date
+        tier: system
+      - key: kind
+        label: Kind
+        type: select
+        tier: starter
+        options:
+          - value: note
+            label: Note
+          - value: screen
+            label: Screen
+      - key: sources
+        label: Sources
+        type: multi-select
+        tier: starter
+        options: []

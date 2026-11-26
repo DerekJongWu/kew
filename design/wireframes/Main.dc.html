@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kew — Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#1c1917;background:#fff}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;color:#1c1917;text-decoration:none;font-size:14px;min-height:20px}
+.nav:hover{background:#e7e5e4;color:#1c1917}
+.nav.on{background:#e7e5e4;font-weight:600}
+.count{font-size:12px;color:#57534e}
+.btn{font:inherit;font-size:13px;padding:6px 12px;border:1px solid #d6d3d1;background:#fff;border-radius:6px;color:#1c1917;cursor:pointer;min-height:32px}
+.btn.primary{background:#1c1917;color:#fff;border-color:#1c1917}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:#f5f5f4;border:1px solid #e7e5e4;color:#44403c}
+.sec{border:1px solid #e7e5e4;border-radius:10px}
+.sechead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #e7e5e4}
+.row{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid #f5f5f4;flex-wrap:wrap}
+.muted{color:#57534e;font-size:13px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 800px; width: 100%;">
+  <nav style="flex: 1 1 200px; max-width: 240px; background: #f5f5f4; border-right: 1px solid #e7e5e4; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;">
+    <div style="font-weight: 700; font-size: 18px; padding: 4px 10px 12px;">Kew</div>
+    <button class="btn" style="text-align: left; color: #57534e; margin-bottom: 12px;">Search or jump…  ⌘K</button>
+    <a class="nav on" href="Main.dc.html">Today <span class="count">9</span></a>
+    <a class="nav" href="Pipeline.dc.html">Pipeline <span class="count">14</span></a>
+    <a class="nav" href="Company.dc.html">Companies</a>
+    <a class="nav" href="Person.dc.html">People</a>
+    <a class="nav" href="Main.dc.html">Meetings</a>
+    <a class="nav" href="Main.dc.html">Themes</a>
+    <a class="nav" href="Main.dc.html">Research</a>
+    <div style="flex: 1;"></div>
+    <a class="nav" href="Fields.dc.html">Settings</a>
+    <div class="muted" style="padding: 8px 10px; font-size: 12px;">All changes saved on this Mac</div>
+  </nav>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px;">
+    <header style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div class="muted">Tuesday, 24 November</div>
+        <h1 style="margin: 4px 0 0; font-size: 28px;">Today</h1>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn">+ Add company</button>
+        <button class="btn">Ask Kew  ⌘J</button>
+      </div>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start;">
+      <section class="sec">
+        <div class="sechead"><strong>Follow-ups due</strong><span class="count">4</span></div>
+        <sc-for list="{{followups}}" as="f" hint-placeholder-count="4">
+          <div class="row">
+            <div style="flex: 1; min-width: 160px;">
+              <a href="Person.dc.html" style="font-weight: 600; text-decoration: none;">{{f.name}}</a>
+              <span class="muted"> · {{f.company}}</span>
+              <div class="muted">{{f.last}}</div>
+            </div>
+            <button class="btn primary">Draft nudge</button>
+            <button class="btn">Snooze</button>
+          </div>
+        </sc-for>
+      </section>
+
+      <section class="sec">
+        <div class="sechead"><strong>Replies you owe</strong><span class="count">2</span></div>
+        <sc-for list="{{owed}}" as="o" hint-placeholder-count="2">
+          <div class="row">
+            <div style="flex: 1; min-width: 160px;">
+              <a href="Person.dc.html" style="font-weight: 600; text-decoration: none;">{{o.name}}</a>
+              <span class="muted"> · {{o.company}}</span>
+              <div class="muted">“{{o.msg}}”</div>
+            </div>
+            <button class="btn primary">Draft reply</button>
+          </div>
+        </sc-for>
+      </section>
+
+      <section class="sec">
+        <div class="sechead"><strong>Reach out today</strong><span class="count">2</span></div>
+        <sc-for list="{{reach}}" as="r" hint-placeholder-count="2">
+          <div class="row">
+            <div style="flex: 1; min-width: 160px;">
+              <a href="Company.dc.html" style="font-weight: 600; text-decoration: none;">{{r.name}}</a>
+              <div class="muted">{{r.why}}</div>
+            </div>
+            <button class="btn primary">Draft intro</button>
+            <button class="btn">Push a week</button>
+          </div>
+        </sc-for>
+      </section>
+
+      <section class="sec">
+        <div class="sechead"><strong>New inbound to triage</strong><a href="Pipeline.dc.html" style="font-size: 13px;">Open pipeline</a></div>
+        <sc-for list="{{inbound}}" as="i" hint-placeholder-count="3">
+          <div class="row">
+            <div style="flex: 1; min-width: 160px;">
+              <a href="Company.dc.html" style="font-weight: 600; text-decoration: none;">{{i.name}}</a>
+              <div class="muted">{{i.line}}</div>
+            </div>
+            <span class="chip">{{i.source}}</span>
+            <button class="btn">Pursue</button>
+            <button class="btn">Pass</button>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      followups: [
+        { name: 'Maya Chen', company: 'Northwind AI', last: 'You messaged on LinkedIn 14 days ago, no reply' },
+        { name: 'Sam Okafor', company: 'Halcyon Labs', last: 'You emailed 10 days ago' },
+        { name: 'Priya Raman', company: 'Stealth', last: 'You messaged on LinkedIn 7 days ago' },
+        { name: 'Leo Martins', company: 'Orbit Data', last: 'Met 30 days ago, cadence 30 days' }
+      ],
+      owed: [
+        { name: 'Ana Ruiz', company: 'Quill Security', msg: 'Happy to share the deck, when works next week?' },
+        { name: 'Tom Becker', company: 'Fennel Robotics', msg: 'Thanks for the intro, looping in our CTO' }
+      ],
+      reach: [
+        { name: 'Tessellate', why: 'You set a reach-out date: “after their seed closes”' },
+        { name: 'Juniper Health', why: 'Tracking ahead of a raise' }
+      ],
+      inbound: [
+        { name: 'Brightwater', line: 'Agent observability for support teams', source: 'Intro' },
+        { name: 'Cobalt Grid', line: 'Grid-scale battery scheduling', source: 'Email' },
+        { name: 'Lumen Ops', line: 'Incident response copilot', source: 'Event' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

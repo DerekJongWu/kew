@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kew — Diligence workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#1c1917;background:#fff}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;color:#1c1917;text-decoration:none;font-size:14px;min-height:20px}
+.nav:hover{background:#e7e5e4;color:#1c1917}
+.nav.on{background:#e7e5e4;font-weight:600}
+.count{font-size:12px;color:#57534e}
+.btn{font:inherit;font-size:13px;padding:6px 12px;border:1px solid #d6d3d1;background:#fff;border-radius:6px;color:#1c1917;cursor:pointer;min-height:32px}
+.btn.primary{background:#1c1917;color:#fff;border-color:#1c1917}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:#f5f5f4;border:1px solid #e7e5e4;color:#44403c;white-space:nowrap}
+.muted{color:#57534e;font-size:13px}
+.tab{font:inherit;font-size:13px;padding:10px 2px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:#57534e;min-height:40px;white-space:nowrap}
+.tab.on{border-bottom-color:#1c1917;color:#1c1917;font-weight:600}
+.box{border:1px solid #e7e5e4;border-radius:10px;padding:14px 16px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:500;color:#57534e;font-size:12px;padding:6px 8px;border-bottom:1px solid #e7e5e4}
+td{padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top}
+h2{font-size:15px;margin:0 0 10px}
+.src{color:#1d4ed8;font-size:12px}
+.file{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer;border:1px solid transparent}
+.file.on{border-color:#1c1917;background:#fff}
+.ext{font-size:11px;font-weight:600;text-align:center;padding:4px 0;border:1px solid #d6d3d1;border-radius:4px;color:#44403c}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 800px; width: 100%;">
+  <nav style="flex: 1 1 200px; max-width: 240px; background: #f5f5f4; border-right: 1px solid #e7e5e4; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;">
+    <div style="font-weight: 700; font-size: 18px; padding: 4px 10px 12px;">Kew</div>
+    <button class="btn" style="text-align: left; color: #57534e; margin-bottom: 12px;">Search or jump…  ⌘K</button>
+    <a class="nav" href="Main.dc.html">Today <span class="count">9</span></a>
+    <a class="nav" href="Pipeline.dc.html">Pipeline <span class="count">14</span></a>
+    <a class="nav on" href="Company.dc.html">Companies</a>
+    <a class="nav" href="Person.dc.html">People</a>
+    <a class="nav" href="Diligence.dc.html">Meetings</a>
+    <a class="nav" href="Diligence.dc.html">Themes</a>
+    <a class="nav" href="Diligence.dc.html">Research</a>
+    <div style="flex: 1;"></div>
+    <a class="nav" href="Fields.dc.html">Settings</a>
+    <div class="muted" style="padding: 8px 10px; font-size: 12px;">All changes saved on this Mac</div>
+  </nav>
+
+  <div style="flex: 999 1 720px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="padding: 16px 24px 0; border-bottom: 1px solid #e7e5e4;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div>
+          <div class="muted"><a href="Company.dc.html" style="color: #57534e;">Quill Security</a> / Diligence</div>
+          <div style="font-weight: 600; font-size: 20px;">Quill Security diligence</div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span class="muted">Built from 6 notes and 12 files · updated 22 Nov</span>
+          <button class="btn">Run full screen</button>
+        </div>
+      </div>
+      <div style="display: flex; gap: 20px; margin-top: 10px; overflow-x: auto;">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="7">
+          <button class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button>
+        </sc-for>
+        <button class="tab" style="color: #57534e;">+ Tab</button>
+      </div>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; flex: 1;">
+      <main style="flex: 999 1 460px; min-width: 0; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;">
+
+        <sc-if value="{{isOverview}}" hint-placeholder-val="{{ false }}">
+          <div class="muted">What's covered so far. Each card is a tab; click one to see the detail and fill the gaps.</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <sc-for list="{{coverage}}" as="c" hint-placeholder-count="5">
+              <button class="box" onClick="{{c.pick}}" style="text-align: left; font: inherit; background: #fff; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; gap: 8px;"><strong style="font-size: 14px;">{{c.name}}</strong><span class="chip">{{c.level}}</span></div>
+                <div class="muted" style="margin-top: 6px;">{{c.line}}</div>
+                <div class="muted" style="margin-top: 8px; font-size: 12px;">{{c.src}}</div>
+              </button>
+            </sc-for>
+          </div>
+          <section class="box">
+            <h2>Latest screen · 14 Nov</h2>
+            <div style="font-size: 14px;">Verdict: <strong>dig in</strong>. Strong founder fit and early design partners; open questions on gross margin and how crowded the space gets.</div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isFin}}" hint-placeholder-val="{{ true }}">
+          <section class="box">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;"><h2 style="margin: 0;">What we know</h2><span class="muted" style="font-size: 12px;">Every number links to where it came from</span></div>
+            <div style="overflow-x: auto; margin-top: 8px;">
+              <table>
+                <thead><tr><th>Metric</th><th>Value</th><th>Source</th><th>As of</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{fin}}" as="f" hint-placeholder-count="6">
+                    <tr><td style="font-weight: 500;">{{f.m}}</td><td>{{f.v}}</td><td><a class="src" href="#">{{f.s}}</a></td><td class="muted">{{f.d}}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="box" style="border-color: #d6d3d1; background: #fafaf9;">
+            <h2>Doesn't add up</h2>
+            <div style="font-size: 14px;">Customers: the deck says <strong>11 paying</strong>, your 18 Nov call notes say <strong>9</strong>.</div>
+            <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;"><button class="btn">Add to founder questions</button><button class="btn">Mark resolved</button></div>
+          </section>
+          <section class="box">
+            <h2>Gaps</h2>
+            <sc-for list="{{gaps}}" as="g" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f5f5f4; flex-wrap: wrap;">
+                <div><div style="font-size: 14px; font-weight: 500;">{{g.t}}</div><div class="muted">{{g.why}}</div></div>
+                <button class="btn">{{g.act}}</button>
+              </div>
+            </sc-for>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isComp}}" hint-placeholder-val="{{ false }}">
+          <div class="muted">Pulled from the theme <strong>AI agent security</strong> and 2 research notes. Edits here update those notes.</div>
+          <section class="box">
+            <h2>Landscape</h2>
+            <div style="overflow-x: auto;">
+              <table>
+                <thead><tr><th>Company</th><th>Approach</th><th>Stage</th><th>In Kew</th></tr></thead>
+                <tbody>
+                  <sc-for list="{{comp}}" as="r" hint-placeholder-count="4">
+                    <tr><td style="font-weight: 500;">{{r.n}}</td><td>{{r.a}}</td><td>{{r.s}}</td><td class="muted">{{r.k}}</td></tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="box">
+            <h2>Gaps</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div><div style="font-size: 14px; font-weight: 500;">How incumbents respond</div><div class="muted">No notes yet on the big security platforms' agent plans</div></div>
+              <button class="btn">Research this</button>
+            </div>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{isFiles}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="muted">Data room files live in this company's attachments folder. Kew reads each one and links what it found to the tabs.</div>
+            <button class="btn">+ Add files or a folder</button>
+          </div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start;">
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+              <sc-for list="{{folders}}" as="fo" hint-placeholder-count="3">
+                <div>
+                  <div class="muted" style="font-size: 12px; font-weight: 600; padding: 4px 10px;">{{fo.name}}</div>
+                  <sc-for list="{{fo.files}}" as="fl" hint-placeholder-count="2">
+                    <div class="{{fl.cls}}"><span class="ext">{{fl.ext}}</span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{fl.n}}</span><span class="muted" style="font-size: 12px;">{{fl.st}}</span></div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex: 2 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+              <div class="box" style="padding: 0; overflow: hidden;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #e7e5e4; gap: 8px; flex-wrap: wrap;">
+                  <strong style="font-size: 14px;">Financial model.xlsx</strong>
+                  <div style="display: flex; gap: 6px;"><button class="btn">Summary ▾</button><button class="btn">Open in Excel</button></div>
+                </div>
+                <div style="height: 220px; background: #f5f5f4; display: grid; place-items: center;" class="muted">[Spreadsheet viewer: the Summary sheet]</div>
+              </div>
+              <section class="box">
+                <h2>What Kew pulled from this file</h2>
+                <div style="font-size: 13px; line-height: 1.8;">Monthly burn, runway and the 2027 revenue plan → <a href="#">Financials tab</a><br>Hiring plan: 9 to 22 people → <a href="#">Team tab</a></div>
+                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;"><button class="btn primary">Ask about this file</button><button class="btn">Re-read</button></div>
+              </section>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isOther}}" hint-placeholder-val="{{ false }}">
+          <div class="box muted" style="font-size: 14px;">[Same layout as Financials: what we know with sources, what doesn't add up, and gaps]</div>
+        </sc-if>
+      </main>
+
+      <aside style="flex: 1 1 300px; max-width: 360px; border-left: 1px solid #e7e5e4; background: #fafaf9; display: flex; flex-direction: column; box-sizing: border-box;">
+        <div style="padding: 14px 16px; border-bottom: 1px solid #e7e5e4;">
+          <strong>Ask Kew</strong>
+          <div class="muted" style="font-size: 12px; margin-top: 2px;">Context: {{tabLabel}} tab, its notes and files</div>
+        </div>
+        <div style="flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.5;">
+          <div class="muted" style="font-size: 12px;">Suggested next steps</div>
+          <sc-for list="{{suggest}}" as="s" hint-placeholder-count="3">
+            <button class="btn" style="text-align: left; background: #fff;">{{s}}</button>
+          </sc-for>
+          <div style="align-self: flex-end; background: #1c1917; color: #fff; padding: 10px 12px; border-radius: 10px; max-width: 85%; margin-top: 8px;">What's their gross margin likely to be?</div>
+          <div style="background: #fff; border: 1px solid #e7e5e4; padding: 10px 12px; border-radius: 10px;">Not stated anywhere. The model's cost tab implies about 70%, but it excludes hosting.<a class="src" href="#"> Model › Costs</a> Save this as a gap to ask Ana about?</div>
+        </div>
+        <div style="padding: 12px 16px; border-top: 1px solid #e7e5e4;">
+          <label for="ask3" class="muted" style="font-size: 12px;">Message</label>
+          <input id="ask3" placeholder="Do more homework on this tab" style="width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid #d6d3d1; border-radius: 8px; margin-top: 4px; min-height: 44px;">
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'fin' }; }
+  renderVals() {
+    const tab = this.state.tab;
+    const go = (id) => () => this.setState({ tab: id });
+    const defs = [
+      ['overview', 'Overview'], ['team', 'Team'], ['comp', 'Market and competition'],
+      ['fin', 'Financials'], ['product', 'Product'], ['refs', 'References'], ['files', 'Files · 12']
+    ];
+    const label = (defs.find(d => d[0] === tab) || defs[0])[1];
+    const suggestions = {
+      fin: ['Build a revenue bridge from the model', 'Compare burn to other seed companies in this theme', 'Draft questions for Ana on the gaps'],
+      comp: ['Find funding for each company in the landscape', 'Write a skeptical take on the space'],
+      files: ['Summarize the deck in one page', 'Check the model against the deck'],
+      overview: ['Fill the thinnest tab first', 'Draft an investment memo outline']
+    };
+    return {
+      tabs: defs.map(d => ({ label: d[1], cls: d[0] === tab ? 'tab on' : 'tab', pick: go(d[0]) })),
+      tabLabel: label,
+      isOverview: tab === 'overview', isFin: tab === 'fin', isComp: tab === 'comp', isFiles: tab === 'files',
+      isOther: ['team', 'product', 'refs'].indexOf(tab) >= 0,
+      suggest: suggestions[tab] || ['Fill the gaps on this tab', 'Summarize what we know'],
+      coverage: [
+        { name: 'Team', level: 'Good', line: 'Both founders profiled; one reference call', src: '2 notes · 1 file', pick: go('team') },
+        { name: 'Market and competition', level: 'Partial', line: '4 competitors mapped; incumbents missing', src: 'Theme + 2 research notes', pick: go('comp') },
+        { name: 'Financials', level: 'Partial', line: 'Revenue and burn known; margin missing', src: '3 notes · 2 files', pick: go('fin') },
+        { name: 'Product', level: 'Thin', line: 'Deck only; no demo notes', src: '1 file', pick: go('product') },
+        { name: 'References', level: 'None', line: 'No customer calls yet', src: '—', pick: go('refs') }
+      ],
+      fin: [
+        { m: 'Revenue run rate', v: '$1.2M', s: 'Deck, slide 14', d: 'Oct 2026' },
+        { m: 'Growth', v: '3x year on year', s: 'Deck, slide 14', d: 'Oct 2026' },
+        { m: 'Monthly burn', v: '$180k', s: 'Model › Summary', d: 'Nov 2026' },
+        { m: 'Runway after raise', v: '24 months', s: 'Model › Summary', d: 'Nov 2026' },
+        { m: 'Round', v: '$6M seed, about half committed', s: 'Email from Ana', d: '24 Nov' },
+        { m: 'Paying customers', v: '11 (or 9, see below)', s: 'Deck · call notes', d: 'Nov 2026' }
+      ],
+      gaps: [
+        { t: 'Gross margin', why: 'Not stated in any note or file', act: 'Ask Claude to estimate' },
+        { t: 'Net revenue retention', why: 'Needs cohort data from the company', act: 'Draft request to Ana' },
+        { t: 'Cap table', why: 'Not in the data room yet', act: 'Add to founder questions' }
+      ],
+      comp: [
+        { n: 'Quill Security', a: 'Policy engine between agent and tools', s: 'Seed', k: 'Reached out' },
+        { n: 'Sample Co A', a: 'Agent identity and permissions', s: 'Series A', k: 'New' },
+        { n: 'Sample Co B', a: 'Prompt-injection firewall', s: 'Seed', k: 'Passed' },
+        { n: 'Sample Co C', a: 'Audit logs for agent actions', s: 'Pre-seed', k: 'Not in Kew' }
+      ],
+      folders: [
+        { name: 'Deck', files: [ { n: 'Quill seed deck.pdf', ext: 'PDF', st: 'Read', cls: 'file' } ] },
+        { name: 'Financials', files: [
+          { n: 'Financial model.xlsx', ext: 'XLS', st: 'Read', cls: 'file on' },
+          { n: 'Bank statements Q3.pdf', ext: 'PDF', st: 'Not read', cls: 'file' } ] },
+        { name: 'Product', files: [
+          { n: 'Architecture overview.pptx', ext: 'PPT', st: 'Read', cls: 'file' },
+          { n: 'Security whitepaper.docx', ext: 'DOC', st: 'Reading…', cls: 'file' } ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

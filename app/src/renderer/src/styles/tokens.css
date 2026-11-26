@@ -1,0 +1,135 @@
+/*
+ * Kew design tokens.
+ *
+ * Direction: "Glasshouse". Kew is a working desk for a deal pipeline, named for a garden of
+ * glasshouses. The look is a clear pane: cool, near-colourless surfaces, crisp native type,
+ * hairline structure, and dense rows that put names and dates first. Nothing decorates.
+ *
+ * Distinctive choice: one accent, Cobalt glass — a deep, slightly inky cobalt (#2148C0 light,
+ * #7FA2FF dark), the blue of old glasshouse panes. It is the only colour in the interface and
+ * it always means "yours to act on": the current place, the primary action, keyboard focus and
+ * counts of things that are due. Neutrals lean a few degrees cool toward it so the blue reads
+ * as native, not applied.
+ *
+ * Type: the macOS system face (SF Pro Text / Display via -apple-system). No webfont is loaded,
+ * so nothing touches the network and type renders with native hinting at small sizes.
+ * Figures are tabular wherever numbers line up.
+ *
+ * All text pairs meet 4.5:1 in both themes (checked; see the Task 14 report).
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Colour: light */
+  --bg: #f7f8fa; /* window canvas */
+  --surface: #ffffff; /* panels, popovers */
+  --sidebar: #eef0f4;
+  --hover: #e6e9ef;
+  --selected: #dfe3eb;
+  --line: #d9dde5; /* panel borders, dividers */
+  --line-soft: #e9ecf1; /* row separators */
+  --text: #181c24;
+  --text-2: #525a68; /* secondary text, 7.0:1 on surface */
+  --text-3: #5d6573; /* tertiary text, 5.2:1 on sidebar */
+  --accent: #2148c0; /* Cobalt glass */
+  --accent-hover: #1a3ba3;
+  --accent-fg: #ffffff;
+  --accent-soft: #e6ecfb;
+  --accent-text: #1c3fae;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --scrim: rgb(24 28 36 / 0.28);
+  --shadow-pop: 0 1px 2px rgb(24 28 36 / 0.06), 0 12px 32px -8px rgb(24 28 36 / 0.22);
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
+
+  /* Type */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace; /* inline code in notes */
+  --text-xs: 11px; /* keycaps, meta */
+  --text-sm: 12px; /* secondary lines, counts */
+  --text-md: 13px; /* body, rows, buttons */
+  --text-lg: 15px; /* section titles */
+  --text-xl: 26px; /* screen titles */
+  --leading: 1.38;
+  --weight-medium: 500;
+  --weight-strong: 600;
+  --tracking-display: -0.022em;
+
+  /* Space (4px grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --sidebar-w: 232px;
+  --row-h: 44px;
+  --control-h: 26px;
+
+  /* Radius, by hierarchy: controls are tighter than panels */
+  --r-chip: 4px;
+  --r-control: 6px;
+  --r-panel: 10px;
+  --r-pop: 12px;
+
+  /* Motion: answers an action, never ambient */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 90ms;
+  --t-med: 160ms;
+}
+
+/* Colour: dark, shared by the system setting and an explicit data-theme="dark" */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #13161b;
+    --surface: #181c22;
+    --sidebar: #101318;
+    --hover: #21262e;
+    --selected: #262c36;
+    --line: #2a303a;
+    --line-soft: #21262e;
+    --text: #e4e8ef;
+    --text-2: #a0a8b5;
+    --text-3: #8f98a6;
+    --accent: #7fa2ff;
+    --accent-hover: #9ab6ff;
+    --accent-fg: #0a1a45;
+    --accent-soft: #1b2647;
+    --accent-text: #9db8ff;
+    --danger: #ff8f85;
+    --danger-soft: #3a1d1a;
+    --scrim: rgb(0 0 0 / 0.5);
+    --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.04), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #13161b;
+  --surface: #181c22;
+  --sidebar: #101318;
+  --hover: #21262e;
+  --selected: #262c36;
+  --line: #2a303a;
+  --line-soft: #21262e;
+  --text: #e4e8ef;
+  --text-2: #a0a8b5;
+  --text-3: #8f98a6;
+  --accent: #7fa2ff;
+  --accent-hover: #9ab6ff;
+  --accent-fg: #0a1a45;
+  --accent-soft: #1b2647;
+  --accent-text: #9db8ff;
+  --danger: #ff8f85;
+  --danger-soft: #3a1d1a;
+  --scrim: rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 0 0 1px rgb(255 255 255 / 0.04), 0 16px 40px -8px rgb(0 0 0 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-med: 0ms;
+  }
+}

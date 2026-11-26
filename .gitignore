@@ -2,3 +2,9 @@
 node_modules/
 dist/
 .env
+
+# Superpowers plan workspaces
+.superpowers/
+app/node_modules
+app/out
+app/dist

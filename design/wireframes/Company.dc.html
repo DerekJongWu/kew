@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kew — Company record</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#1c1917;background:#fff}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;color:#1c1917;text-decoration:none;font-size:14px;min-height:20px}
+.nav:hover{background:#e7e5e4;color:#1c1917}
+.nav.on{background:#e7e5e4;font-weight:600}
+.count{font-size:12px;color:#57534e}
+.btn{font:inherit;font-size:13px;padding:6px 12px;border:1px solid #d6d3d1;background:#fff;border-radius:6px;color:#1c1917;cursor:pointer;min-height:32px}
+.btn.primary{background:#1c1917;color:#fff;border-color:#1c1917}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:#f5f5f4;border:1px solid #e7e5e4;color:#44403c}
+.muted{color:#57534e;font-size:13px}
+.prop{display:grid;grid-template-columns:140px minmax(0,1fr);gap:8px;padding:6px 0;font-size:14px;align-items:center}
+.plabel{color:#57534e;font-size:13px}
+.tab{font:inherit;font-size:13px;padding:8px 4px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:#57534e;min-height:36px}
+.tab.on{border-bottom-color:#1c1917;color:#1c1917;font-weight:600}
+.ev{display:grid;grid-template-columns:80px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f4;font-size:14px}
+h3{font-size:15px;margin:20px 0 8px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 800px; width: 100%;">
+  <nav style="flex: 1 1 200px; max-width: 240px; background: #f5f5f4; border-right: 1px solid #e7e5e4; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;">
+    <div style="font-weight: 700; font-size: 18px; padding: 4px 10px 12px;">Kew</div>
+    <button class="btn" style="text-align: left; color: #57534e; margin-bottom: 12px;">Search or jump…  ⌘K</button>
+    <a class="nav" href="Main.dc.html">Today <span class="count">9</span></a>
+    <a class="nav" href="Pipeline.dc.html">Pipeline <span class="count">14</span></a>
+    <a class="nav on" href="Company.dc.html">Companies</a>
+    <a class="nav" href="Person.dc.html">People</a>
+    <a class="nav" href="Company.dc.html">Meetings</a>
+    <a class="nav" href="Company.dc.html">Themes</a>
+    <a class="nav" href="Company.dc.html">Research</a>
+    <div style="flex: 1;"></div>
+    <a class="nav" href="Fields.dc.html">Settings</a>
+    <div class="muted" style="padding: 8px 10px; font-size: 12px;">All changes saved on this Mac</div>
+  </nav>
+
+  <main style="flex: 999 1 480px; min-width: 0; padding: 28px 40px; box-sizing: border-box;">
+    <div class="muted"><a href="Pipeline.dc.html" style="color: #57534e;">Companies</a> / Quill Security</div>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 8px;">
+      <div>
+        <h1 style="margin: 0; font-size: 28px;">Quill Security</h1>
+        <div class="muted" style="font-size: 15px; margin-top: 4px;">Runtime security for AI agents · quill.example</div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="btn">Status: Reached out ▾</button>
+        <button class="btn">Screen with Claude</button>
+        <button class="btn">Pass…</button>
+      </div>
+    </div>
+
+    <section style="margin-top: 20px; border: 1px solid #e7e5e4; border-radius: 10px; padding: 12px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); column-gap: 32px;">
+      <sc-for list="{{props}}" as="p" hint-placeholder-count="8">
+        <div class="prop"><span class="plabel">{{p.k}}</span><span>{{p.v}}</span></div>
+      </sc-for>
+      <div class="prop"><button class="btn" style="border: none; padding: 6px 0; color: #57534e; text-align: left;">+ Add a property</button></div>
+    </section>
+
+    <div style="display: flex; gap: 20px; border-bottom: 1px solid #e7e5e4; margin-top: 20px; flex-wrap: wrap;">
+      <button class="tab on">Overview</button>
+      <button class="tab">Timeline</button>
+      <button class="tab">Research · 2</button>
+      <button class="tab">Files · 3</button>
+    </div>
+
+    <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+      <article style="flex: 3 1 340px; min-width: 0; font-size: 14px; line-height: 1.6;">
+        <h3>What it is</h3>
+        <p style="margin: 0;">Policy engine that sits between an agent and its tools and blocks unsafe calls at runtime. Sells to platform security teams.</p>
+        <h3>Team</h3>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="Person.dc.html" class="chip" style="text-decoration: none;">Ana Ruiz · CEO · not met</a>
+          <span class="chip">Dev Patel · CTO · not met</span>
+        </div>
+        <h3>Why it could work</h3>
+        <p style="margin: 0; color: #57534e;">[Your notes. Starter template section; edit it in Settings › Templates]</p>
+        <h3>Risks</h3>
+        <p style="margin: 0; color: #57534e;">[Your notes]</p>
+      </article>
+      <aside style="flex: 2 1 240px; min-width: 0;">
+        <h3>Recent activity</h3>
+        <sc-for list="{{events}}" as="e" hint-placeholder-count="4">
+          <div class="ev"><span class="muted">{{e.d}}</span><span>{{e.t}}</span></div>
+        </sc-for>
+      </aside>
+    </div>
+  </main>
+
+  <aside style="flex: 1 1 320px; max-width: 380px; border-left: 1px solid #e7e5e4; background: #fafaf9; display: flex; flex-direction: column; box-sizing: border-box;">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #e7e5e4;">
+      <strong>Ask Kew</strong>
+      <button class="btn" aria-label="Close copilot" style="padding: 4px 10px;">×</button>
+    </div>
+    <div style="flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.5;">
+      <div class="muted" style="font-size: 12px;">Sees: this note, the vault, your connectors</div>
+      <div style="align-self: flex-end; background: #1c1917; color: #fff; padding: 10px 12px; border-radius: 10px; max-width: 85%;">Ana replied with their round details. Update the note.</div>
+      <div style="background: #fff; border: 1px solid #e7e5e4; padding: 10px 12px; border-radius: 10px;">From her reply: they're raising a $6M seed, about half committed, closing in January. Proposed changes:</div>
+      <div style="background: #fff; border: 1px solid #e7e5e4; border-radius: 10px; overflow: hidden; font-size: 13px;">
+        <div style="padding: 8px 12px; border-bottom: 1px solid #e7e5e4; font-weight: 600;">Quill Security.md · 3 changes</div>
+        <div style="padding: 8px 12px; font-family: ui-monospace, monospace; line-height: 1.7;">
+          <div>round status: <span style="text-decoration: line-through; color: #57534e;">tracking</span> → <strong>raising</strong></div>
+          <div>raise: <span style="color: #57534e;">(blank)</span> → <strong>$6M seed</strong></div>
+          <div>+ log: 24 Nov, in · email: shared round details</div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid #e7e5e4;">
+          <button class="btn primary">Approve</button>
+          <button class="btn">Edit</button>
+          <button class="btn">Reject</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 12px 16px; border-top: 1px solid #e7e5e4;">
+      <label for="ask" class="muted" style="font-size: 12px;">Message</label>
+      <input id="ask" placeholder="Ask, draft, or /screen" style="width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 10px 12px; border: 1px solid #d6d3d1; border-radius: 8px; margin-top: 4px; min-height: 44px;">
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      props: [
+        { k: 'Pipeline status', v: 'Reached out' },
+        { k: 'Stage', v: 'Seed' },
+        { k: 'Themes', v: 'AI agent security' },
+        { k: 'Round status', v: 'Tracking' },
+        { k: 'Raise', v: '—' },
+        { k: 'Referred by', v: 'Sam Okafor' },
+        { k: 'First seen', v: '12 Nov 2026' },
+        { k: 'Conviction', v: 'Medium' }
+      ],
+      events: [
+        { d: '24 Nov', t: 'Ana replied by email' },
+        { d: '21 Nov', t: 'You messaged Ana on LinkedIn' },
+        { d: '14 Nov', t: 'Screen: verdict “dig in”' },
+        { d: '12 Nov', t: 'Added from an intro by Sam Okafor' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
