@@ -8,6 +8,30 @@ const hidden = (key: string): boolean => HIDDEN.has(key) || key.startsWith('_')
 export const propertyFields = (fields: FieldDef[]): FieldDef[] =>
   fields.filter((f) => !hidden(f.key))
 
+/** No value: missing, null, blank text, an empty list or an unticked checkbox. */
+export const isEmptyValue = (v: FieldValue | undefined): boolean =>
+  v === null ||
+  v === undefined ||
+  v === false ||
+  (typeof v === 'string' && v.trim() === '') ||
+  (Array.isArray(v) && v.every((x) => String(x).trim() === ''))
+
+/**
+ * The company page shows filled fields and folds empty ones behind "Show N empty fields".
+ * `keep` holds keys that had a value (or a problem) at some point on this page, so a field you
+ * just filled, or cleared, doesn't vanish under you. Schema order is kept.
+ */
+export function splitEmptyFields(
+  fields: FieldDef[],
+  values: Record<string, FieldValue>,
+  keep: ReadonlySet<string>
+): { shown: FieldDef[]; hidden: FieldDef[] } {
+  const shown: FieldDef[] = []
+  const hidden: FieldDef[] = []
+  for (const f of fields) (isEmptyValue(values[f.key]) && !keep.has(f.key) ? hidden : shown).push(f)
+  return { shown, hidden }
+}
+
 /** Frontmatter keys the schema doesn't define (shown read-only under "Other properties"). */
 export function otherKeys(values: Record<string, FieldValue>, fields: FieldDef[]): string[] {
   const known = new Set(fields.map((f) => f.key))

@@ -10,7 +10,9 @@ import {
   displayValue,
   guessType,
   labelFromKey,
-  optionValue
+  optionValue,
+  isEmptyValue,
+  splitEmptyFields
 } from '../../src/renderer/src/lib/properties'
 import { BodySync, normalizeBody, reconcile } from '../../src/renderer/src/lib/body-sync'
 import { linkAt, linkQuery, matchesName } from '../../src/renderer/src/lib/wikilinks'
@@ -21,6 +23,27 @@ const f = (key: string, type: FieldDef['type'] = 'text'): FieldDef => ({
   label: key,
   type,
   tier: 'starter'
+})
+
+describe('splitEmptyFields', () => {
+  const fields = [f('website', 'url'), f('stage', 'select'), f('themes', 'relation'), f('raise'), f('lead')]
+  it('shows filled fields and folds empty ones, in schema order', () => {
+    const { shown, hidden } = splitEmptyFields(
+      fields,
+      { website: 'a.example', stage: '', themes: [], raise: '$4M', lead: null },
+      new Set()
+    )
+    expect(shown.map((x) => x.key)).toEqual(['website', 'raise'])
+    expect(hidden.map((x) => x.key)).toEqual(['stage', 'themes', 'lead'])
+  })
+  it('keeps a field visible once it had a value on this page, even after it is cleared', () => {
+    const { shown } = splitEmptyFields(fields, { website: 'a.example' }, new Set(['lead']))
+    expect(shown.map((x) => x.key)).toEqual(['website', 'lead'])
+  })
+  it('counts blank text, empty lists and unticked boxes as empty, but not zero', () => {
+    expect([null, undefined, '', '  ', [], [''], false].every(isEmptyValue)).toBe(true)
+    expect([0, 'x', ['[[A]]'], true].some(isEmptyValue)).toBe(false)
+  })
 })
 
 describe('propertyFields', () => {

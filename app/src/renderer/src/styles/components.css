@@ -1585,6 +1585,12 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   column-gap: var(--s-6);
 }
+.props-toggle {
+  margin: 0 var(--s-4) var(--s-3);
+}
+.props + .props-toggle {
+  margin-top: calc(-1 * var(--s-1));
+}
 .prop {
   display: grid;
   grid-template-columns: 120px minmax(0, 1fr);
