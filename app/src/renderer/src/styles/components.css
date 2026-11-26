@@ -1260,13 +1260,16 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .relpick-input {
-  flex: 1;
-  min-width: 120px;
+  flex: 1 1 40px;
+  min-width: 40px;
   height: 24px;
   border: 0;
   outline: 0;
   background: none;
   color: var(--text);
+}
+.relpick-box:not(:has(.relpick-chip)) .relpick-input {
+  min-width: 120px;
 }
 .relpick-input::placeholder {
   color: var(--text-3);
@@ -1719,6 +1722,11 @@
 .md-quote {
   color: var(--text-2);
 }
+.md-h .md-mark,
+.md-h.md-mark {
+  color: var(--text-3);
+  font-weight: 400;
+}
 .md-wikilink {
   color: var(--accent-text);
   text-decoration: underline;
@@ -1735,6 +1743,9 @@
   border-radius: var(--r-control);
   background: var(--surface);
   box-shadow: var(--shadow-pop);
+  font-family: var(--font);
+}
+.cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul {
   font-family: var(--font);
 }
 .cm-tooltip.cm-tooltip-autocomplete > ul > li {
@@ -1763,13 +1774,14 @@
   align-items: baseline;
 }
 .timeline-date {
-  flex: 0 0 88px;
+  flex: 0 0 76px;
+  white-space: nowrap;
   font-size: var(--text-sm);
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .timeline-kind {
-  flex: 0 0 64px;
+  flex: 0 0 56px;
   font-size: var(--text-sm);
   color: var(--text-2);
 }
@@ -2003,6 +2015,10 @@ button.timeline-text {
   padding: var(--s-4);
 }
 .vault-name {
+  padding: 0;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-size: var(--text-lg);
   font-weight: var(--weight-strong);
@@ -2110,4 +2126,12 @@ button.timeline-text {
   margin: 0;
   padding: 0;
   min-width: 0;
+}
+
+.prop-date {
+  text-align: left;
+  cursor: pointer;
+}
+.prop-date-empty {
+  color: var(--text-3);
 }
