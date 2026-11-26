@@ -1935,12 +1935,15 @@ button.timeline-text {
 }
 .settings-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 460px);
   grid-template-areas: 'types types' 'table panel';
   gap: var(--s-4);
   align-items: start;
 }
-@media (max-width: 1000px) {
+/* Side by side only when the table (about 560px) and the editor both fit whole; otherwise the
+   editor goes under the table at full width. A media query, not a container query: containment
+   would trap the fixed scrim of the dialogs inside this screen. */
+@media (max-width: 1335px) {
   .settings-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: 'types' 'table' 'panel';
@@ -2051,6 +2054,16 @@ button.timeline-text {
   border-radius: var(--r-control);
   background: var(--hover);
 }
+/* Save stays in reach at the bottom of the window while the options list scrolls past. */
+.field-panel .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--s-4));
+  padding: var(--s-2) var(--s-4);
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+}
 .field-danger-zone {
   margin-top: var(--s-2);
   padding-top: var(--s-3);
@@ -2077,20 +2090,20 @@ button.timeline-text {
 }
 .opt-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: 'move label x' '. rest .' '. prob .';
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--s-1);
-  padding-bottom: var(--s-2);
+  padding-bottom: var(--s-1);
   border-bottom: 1px solid var(--line-soft);
 }
-.opt-row > .opt-move { grid-area: move; }
-.opt-rest { grid-area: rest; display: flex; gap: var(--s-1); min-width: 0; }
-.opt-rest .opt-value { flex: 1; min-width: 0; }
-.opt-rest .field-select { width: 140px; }
-.opt-row > .field:first-of-type { grid-area: label; }
-.opt-row > .icon-btn { grid-area: x; }
-.opt-row > .opt-problem { grid-area: prob; }
+/* Stages add a category select: move · label · value · category · remove, all on one row. */
+.opt-row-stage {
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) 112px auto;
+}
+.opt-rest { display: contents; }
+.opt-rest .opt-value { min-width: 0; }
+.opt-rest .field-select { width: 100%; min-width: 0; }
+.opt-row > .opt-problem { grid-column: 2 / -1; }
 .opt-move {
   display: inline-flex;
 }

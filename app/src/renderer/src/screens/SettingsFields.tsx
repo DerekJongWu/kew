@@ -1,5 +1,5 @@
 // Settings › Fields: the types, their fields, and an editor for the selected field.
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { kew, useQuery } from '../api'
 import { plainError, status } from '../lib/actions'
 import { TYPE_LABEL } from '../lib/destinations'
@@ -68,7 +68,7 @@ function OptionsEditor({
         {options.map((o, i) => {
           const problem = optionValueProblem(o.value, options, i)
           return (
-            <li key={o.origin ?? `new-${i}`} className="opt-row">
+            <li key={o.origin ?? `new-${i}`} className={`opt-row${stage ? ' opt-row-stage' : ''}`}>
               <span className="opt-move">
                 <button
                   type="button"
@@ -184,6 +184,7 @@ function FieldEditor({
   field,
   existingKeys,
   locked,
+  panelRef,
   onRenamed,
   onDeleted
 }: {
@@ -192,6 +193,7 @@ function FieldEditor({
   existingKeys: string[]
   /** The schema file is broken: show the field but disable every control. */
   locked: boolean
+  panelRef?: React.Ref<HTMLElement>
   onRenamed(key: string): void
   onDeleted(): void
 }): React.JSX.Element {
@@ -261,7 +263,7 @@ function FieldEditor({
   }
 
   return (
-    <section className="field-panel" aria-label={`Edit ${field.label}`}>
+    <section className="field-panel" aria-label={`Edit ${field.label}`} ref={panelRef}>
       <header className="field-panel-head">
         <h2 className="section-title">{field.label}</h2>
         <Chip tone={system ? 'accent' : 'neutral'}>{TIER_LABEL[field.tier]}</Chip>
@@ -269,7 +271,9 @@ function FieldEditor({
       <p className="form-hint">
         <code className="prop-key">{field.key}</code> · {FIELD_TYPE_LABEL[field.type]}
       </p>
-      {system && <p className="form-hint field-system">System — can’t be deleted or renamed.</p>}
+      {system && (
+        <p className="form-hint field-system">System fields can be renamed but not deleted.</p>
+      )}
 
       <fieldset className="fieldset-plain" disabled={locked}>
         <form
@@ -386,6 +390,11 @@ export function SettingsFields(): React.JSX.Element {
   const field = fields.find((f) => f.key === selected) ?? null
   const vaultError = state?.vault?.schemaError ?? null
   const lockedReason = fieldsLockedReason(vaultError)
+  // When the editor sits under the table (narrow windows), bring it into view on selection.
+  const panel = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (selected) panel.current?.scrollIntoView({ block: 'nearest' })
+  }, [selected])
 
   return (
     <div className="screen screen-wide settings">
@@ -477,6 +486,7 @@ export function SettingsFields(): React.JSX.Element {
             field={field}
             existingKeys={fields.map((f) => f.key)}
             locked={!!lockedReason}
+            panelRef={panel}
             onRenamed={setSelected}
             onDeleted={() => setSelected(null)}
           />
